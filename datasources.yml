@@ -5,6 +5,7 @@ datasources:
     type: postgres
     url: postgres:5432
     database: postgres
+    isDefault: true
     user: grafanareader
     secureJsonData:
       password: "password"

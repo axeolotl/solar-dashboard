@@ -10,8 +10,14 @@ services:
     volumes:
       - grafana-storage
       - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml
+      - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
+      - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      
   postgres:
-    image: postgres:latest
+    image: postgres:9
     container_name: postgres
     networks: 
       - grafnet

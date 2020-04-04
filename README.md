@@ -5,6 +5,7 @@ Prerequisites:
 
 Installation:
 - edit config.sh to provide `SOLAR_HEAT_DIR` and `WLAN_SD_IP`
+- edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD` and `PG_ADMIN_PASSWORD`
 - edit crontab to provide project directory
 - then:
 ```bash
@@ -18,5 +19,5 @@ Installation:
 crontab < crontab
 ```
 - login as admin at http://localhost:3000/ 
-- TODO: automatically configure dashboard and admin account/password
+- TODO: fix daily / weekly graphs
 - see your data
