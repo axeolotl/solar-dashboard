@@ -1,0 +1,23 @@
+version: "3.7"
+
+services:
+  grafana:
+    image: grafana/grafana:5.4.3
+    networks: 
+      - grafnet
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-storage
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    networks: 
+      - grafnet
+    environment:
+      - POSTGRES_PASSWORD=${PG_ADMIN_PASSWORD}
+    volumes:
+      - ${SOLAR_HEAT_DIR}:/tmp/SC514:ro
+
+networks:
+  grafnet:
