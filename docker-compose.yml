@@ -9,6 +9,7 @@ services:
       - 3000:3000
     volumes:
       - grafana-storage
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml
   postgres:
     image: postgres:latest
     container_name: postgres

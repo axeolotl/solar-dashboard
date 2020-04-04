@@ -4,7 +4,7 @@ Prerequisites:
 - docker-compose
 
 Installation:
-- edit config.sh to provide `SOLAR_HEAT_DIR` and WLAN_SD_IP
+- edit config.sh to provide `SOLAR_HEAT_DIR` and `WLAN_SD_IP`
 - edit crontab to provide project directory
 - then:
 ```bash
@@ -18,5 +18,5 @@ Installation:
 crontab < crontab
 ```
 - login as admin at http://localhost:3000/ 
-- TODO: automatically configure datasource and dashboard
+- TODO: automatically configure dashboard and admin account/password
 - see your data
