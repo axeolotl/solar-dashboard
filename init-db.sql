@@ -28,7 +28,8 @@ Heat_today  integer,
 Heat_week   integer,
 Power		integer
 );
-create view heizung_pro_tag as select date1, heat_today from heizung where date1 = date_trunc('day',date1);
+
+create view heizung_pro_tag as select date_trunc('day',date1) as date1, max(heat)-min(heat) as heat_today from heizung group by 1;
 
 SET DateStyle TO 'DMY';
 set timezone TO 'Europe/Berlin';

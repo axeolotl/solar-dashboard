@@ -12,7 +12,7 @@ fi
 touch $TMPFILE
 while [ $N -ge 0 ] ; do
   D="-$N days"
-  cat $PREFIX/$(date +%Y "--date=$D")/$(date +%m "--date=$D")/$(date +%Y%m%d "--date=$D").TXT >> $TMPFILE
+  cat ${SOLAR_HEAT_DIR}/$(date +%Y "--date=$D")/$(date +%m "--date=$D")/$(date +%Y%m%d "--date=$D").TXT >> $TMPFILE
   N=$((N - 1))
 done
-docker run -i -a stdin -a stdout -a stderr --rm --network solar_dashboard_grafnet --link postgres:postgres -e PGPASSWORD="topsecret" postgres psql -h postgres -U postgres <$SCRIPTDIR/update-db.sql 
+docker run -i -a stdin -a stdout -a stderr --rm --network solar_dashboard_grafnet --link postgres:postgres -e PGPASSWORD="topsecret" postgres psql -h postgres -U postgres <${SCRIPTDIR}/update-db.sql 

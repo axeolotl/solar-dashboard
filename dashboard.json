@@ -2,6 +2,7 @@
   "annotations": {
     "list": [
       {
+        "$$hashKey": "object:57",
         "builtIn": 1,
         "datasource": "-- Grafana --",
         "enable": true,
@@ -22,6 +23,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -30,6 +32,7 @@
         "x": 0,
         "y": 0
       },
+      "hiddenSeries": false,
       "id": 6,
       "interval": "",
       "legend": {
@@ -59,18 +62,10 @@
       "targets": [
         {
           "format": "time_series",
-          "group": [
-            {
-              "params": [
-                "$__interval",
-                "none"
-              ],
-              "type": "time"
-            }
-          ],
+          "group": [],
           "metricColumn": "none",
           "rawQuery": false,
-          "rawSql": "SELECT\n  $__timeGroupAlias(date1,$__interval),\n  max(heat_today) AS \"heat_today\"\nFROM heizung\nWHERE\n  $__timeFilter(date1) AND\n  date1 = date_trunc('day',date1)\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  date1 AS \"time\",\n  heat_today\nFROM heizung_pro_tag\nWHERE\n  $__timeFilter(date1)\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -79,39 +74,17 @@
                   "heat_today"
                 ],
                 "type": "column"
-              },
-              {
-                "params": [
-                  "max"
-                ],
-                "type": "aggregate"
-              },
-              {
-                "params": [
-                  "heat_today"
-                ],
-                "type": "alias"
               }
             ]
           ],
-          "table": "heizung",
+          "table": "heizung_pro_tag",
           "timeColumn": "date1",
-          "timeColumnType": "timestamp",
+          "timeColumnType": "timestamptz",
           "where": [
             {
               "name": "$__timeFilter",
               "params": [],
               "type": "macro"
-            },
-            {
-              "datatype": "timestamp",
-              "name": "",
-              "params": [
-                "date1",
-                "=",
-                "date_trunc('day',date1)"
-              ],
-              "type": "expression"
             }
           ]
         }
@@ -162,6 +135,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -170,6 +144,7 @@
         "x": 12,
         "y": 0
       },
+      "hiddenSeries": false,
       "id": 8,
       "legend": {
         "alignAsTable": false,
@@ -401,6 +376,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -409,6 +385,7 @@
         "x": 0,
         "y": 8
       },
+      "hiddenSeries": false,
       "id": 2,
       "legend": {
         "avg": false,
@@ -520,6 +497,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -528,6 +506,7 @@
         "x": 12,
         "y": 8
       },
+      "hiddenSeries": false,
       "id": 10,
       "legend": {
         "avg": false,
@@ -697,6 +676,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "description": "increase in \"heat\"",
       "fill": 1,
       "fillGradient": 0,
@@ -706,6 +686,7 @@
         "x": 12,
         "y": 16
       },
+      "hiddenSeries": false,
       "id": 4,
       "interval": "",
       "legend": {
@@ -834,6 +815,7 @@
       "bars": true,
       "dashLength": 10,
       "dashes": false,
+      "datasource": null,
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
@@ -842,6 +824,7 @@
         "x": 0,
         "y": 17
       },
+      "hiddenSeries": false,
       "id": 11,
       "interval": "7d",
       "legend": {
@@ -961,14 +944,14 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 16,
+  "schemaVersion": 22,
   "style": "dark",
   "tags": [],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-7d",
+    "from": "now-30d",
     "to": "now"
   },
   "timepicker": {
@@ -999,5 +982,8 @@
   "timezone": "",
   "title": "Solar Dashboard",
   "uid": "jnVLWvdZk",
-  "version": 2
+  "variables": {
+    "list": []
+  },
+  "version": 1
 }
