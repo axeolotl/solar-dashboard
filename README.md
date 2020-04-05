@@ -12,12 +12,12 @@ Installation:
 # create docker resources
 ./init-docker.sh
 # docker compose up
-./run-docker.sh
+./docker-up.sh
 # load data from files into database
 ./init-db.sh
 # regularly update files from WLAN-SD card
 crontab < crontab
 ```
 - login as admin at http://localhost:3000/ 
-- TODO: fix daily / weekly graphs
+- select dashboard "Solar Dashboard"
 - see your data
