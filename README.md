@@ -19,14 +19,14 @@ Prerequisites:
 
 Installation:
 
+* replace solar.ferne-gefil.de with virtual host name  TODO TODO
+* run init-letsencrypt.sh
 * edit config.sh to provide `SOLAR_HEAT_DIR` and `WLAN_SD_IP`
 * edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD` and `PG_ADMIN_PASSWORD`
 * edit crontab to provide project directory
 * then:
 
 ```bash
-# create docker resources
-./init-docker.sh
 # docker compose up
 ./docker-up.sh
 # load data from files into database

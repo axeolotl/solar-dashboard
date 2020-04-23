@@ -5,10 +5,10 @@ services:
     image: grafana/grafana:6.7.1-ubuntu
     networks: 
       - grafnet
+      - frontnet
     ports:
       - 3000:3000
     volumes:
-      - grafana-storage
       - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml
       - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
       - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json
@@ -26,5 +26,24 @@ services:
     volumes:
       - ${SOLAR_HEAT_DIR}:/tmp/SC514:ro
 
+  nginx:
+    image: nginx:1.16-alpine
+    networks:
+      - frontnet
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
 networks:
   grafnet:
+  frontnet:
