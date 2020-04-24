@@ -471,14 +471,16 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:153",
           "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
-          "min": null,
+          "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:154",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -921,14 +923,16 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:279",
           "format": "short",
           "label": null,
           "logBase": 1,
           "max": null,
-          "min": null,
+          "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:280",
           "format": "short",
           "label": null,
           "logBase": 1,
