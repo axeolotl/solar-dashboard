@@ -1,7 +1,8 @@
 #!/bin/sh
 N=1
 SCRIPTDIR=`dirname $0`
-. "${SCRIPTDIR}/config.sh"
+cd "${SCRIPTDIR}"
+. ./config.sh
 DOCKER_COMPOSE_PROJECT=`basename "$PWD"`
 TMPFILE=${SOLAR_HEAT_DIR}/delta.txt
 if [ -n "$1" ] ; then

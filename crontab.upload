@@ -1,0 +1,3 @@
+SHELL=/bin/bash
+# Example - replace $HOME/solar-dashboard with project root directory
+0 * * * * ( date ; $HOME/solar-dashboard/update-files.sh && $HOME/solar-dashboard/upload-files.sh ) >> $HOME/solar-dashboard/update.sh.log 2>&1
