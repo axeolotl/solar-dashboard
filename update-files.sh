@@ -7,6 +7,8 @@ if [ -n "$1" ] ; then
 fi
 while [ $N -ge 0 ] ; do
   D="-$N days"
-  wget -x -nH --cut-dirs=1 "--directory-prefix=${SOLAR_HEAT_DIR}" http://${WLAN_SD_IP}/SC514/$(date +%Y "--date=$D")/$(date +%m "--date=$D")/$(date +%Y%m%d "--date=$D").TXT
+  DIR=$(date +%Y "--date=$D")/$(date +%m "--date=$D")
+  FILE=$(date +%Y%m%d "--date=$D").TXT
+  wget -x -nH --cut-dirs=1 "--directory-prefix=${SOLAR_HEAT_DIR}" http://${WLAN_SD_IP}/SC514/${DIR}/${FILE}
   N=$((N - 1))
 done
