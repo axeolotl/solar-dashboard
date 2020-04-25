@@ -6,8 +6,6 @@ services:
     networks: 
       - grafnet
       - frontnet
-    ports:
-      - 3000:3000
     volumes:
       - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml
       - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
