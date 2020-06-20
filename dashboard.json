@@ -183,7 +183,7 @@
         ],
         "executionErrorState": "alerting",
         "for": "0m",
-        "frequency": "10m",
+        "frequency": "5m",
         "handler": 1,
         "message": "Primärkreislauf kocht",
         "name": "Temperaturen Primärkreislauf alert",
@@ -232,6 +232,7 @@
       "renderer": "flot",
       "seriesOverrides": [
         {
+          "$$hashKey": "object:310",
           "alias": "r1",
           "yaxis": 2
         }
@@ -421,6 +422,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:323",
           "format": "short",
           "label": "°C",
           "logBase": 1,
@@ -429,6 +431,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:324",
           "format": "short",
           "label": "flow",
           "logBase": 1,
@@ -495,7 +498,7 @@
         ],
         "executionErrorState": "alerting",
         "for": "0m",
-        "frequency": "10m",
+        "frequency": "5m",
         "handler": 1,
         "message": "Solar-Speicher-Temperatur außerhalb des grünen Bereichs",
         "name": "Solar-Speicher-Temperatur alert",
@@ -871,7 +874,7 @@
           ],
           "metricColumn": "none",
           "rawQuery": false,
-          "rawSql": "SELECT\n  $__timeGroupAlias(date1,$__interval),\n  (CASE WHEN max(heat) >= lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) THEN max(heat) - lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) WHEN lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) IS NULL THEN NULL ELSE max(heat) END) AS \"heat\"\nFROM heizung\nWHERE\n  $__timeFilter(date1)\nGROUP BY 1\nORDER BY 1",
+          "rawSql": "SELECT\n  $__timeGroupAlias(date1,$__interval),\n  (CASE WHEN max(heat) >= lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) THEN max(heat) - lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) WHEN lag(max(heat)) OVER (ORDER BY $__timeGroup(date1,$__interval)) IS NULL THEN NULL ELSE max(heat) END)/extract(epoch from min(date1) - lag(min(date1)) OVER (ORDER BY $__timeGroup(date1,$__interval))) AS \"heat\"\nFROM heizung\nWHERE\n  $__timeFilter(date1)\nGROUP BY 1\nORDER BY 1",
           "refId": "A",
           "select": [
             [
@@ -889,7 +892,7 @@
               },
               {
                 "params": [
-                  "increase"
+                  "rate"
                 ],
                 "type": "window"
               },
@@ -917,7 +920,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Heat transmitted",
+      "title": "Wärmeübertragung [Wh/s]",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -933,6 +936,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:463",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -941,6 +945,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:464",
           "format": "short",
           "label": null,
           "logBase": 1,
