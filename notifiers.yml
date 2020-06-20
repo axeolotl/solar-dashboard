@@ -1,0 +1,15 @@
+notifiers:
+  - name: ilert
+    type: webhook
+    uid: oE3xGcWGz
+    org_id: 1
+    is_default: true
+    send_reminder: true
+    frequency: 1h
+    disable_resolve_message: false
+    # See `Supported Settings` section for settings supporter for each
+    # alert notification type.
+    settings:
+      url: https://api.ilert.com/api/v1/events/grafana/il1gra0620357767ddc7cb42429917bcc79e1dbccb743cbdbf52
+      username: ''
+      password: ''
