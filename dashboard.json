@@ -187,7 +187,7 @@
         "handler": 1,
         "message": "Primärkreislauf kocht",
         "name": "Temperaturen Primärkreislauf alert",
-        "noDataState": "no_data",
+        "noDataState": "keep_state",
         "notifications": [
           {
             "uid": "oE3xGcWGz"
@@ -452,7 +452,7 @@
           {
             "evaluator": {
               "params": [
-                75
+                80
               ],
               "type": "gt"
             },
@@ -594,7 +594,7 @@
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 75
+          "value": 80
         }
       ],
       "timeFrom": null,
