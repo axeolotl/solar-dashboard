@@ -396,11 +396,13 @@
       ],
       "thresholds": [
         {
+          "$$hashKey": "object:415",
           "colorMode": "critical",
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 100
+          "value": 100,
+          "yaxis": "left"
         }
       ],
       "timeFrom": null,
@@ -423,8 +425,8 @@
       "yaxes": [
         {
           "$$hashKey": "object:323",
-          "format": "short",
-          "label": "°C",
+          "format": "celsius",
+          "label": "",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -590,11 +592,13 @@
       ],
       "thresholds": [
         {
+          "$$hashKey": "object:516",
           "colorMode": "critical",
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 80
+          "value": 80,
+          "yaxis": "left"
         }
       ],
       "timeFrom": null,
@@ -617,7 +621,7 @@
       "yaxes": [
         {
           "$$hashKey": "object:153",
-          "format": "short",
+          "format": "celsius",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -797,14 +801,17 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:629",
+          "decimals": null,
+          "format": "percent",
           "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
+          "max": "100",
+          "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:630",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1108,6 +1115,177 @@
         "y": 24
       },
       "hiddenSeries": false,
+      "id": 15,
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "dataLinks": []
+      },
+      "percentage": false,
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:204",
+          "alias": "Pumpe Rücklaufanhebung (R4)",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date1 AS \"time\",\n  r4 AS \"Pumpe Rücklaufanhebung (R4)\"\nFROM heizung\nWHERE\n  $__timeFilter(date1)\nORDER BY 1",
+          "refId": "A",
+          "select": [
+            [
+              {
+                "params": [
+                  "s9"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "table": "heizung",
+          "timeColumn": "s10",
+          "timeColumnType": "float4",
+          "where": [
+            {
+              "name": "$__unixEpochFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date1 AS \"time\",\n  s2 AS \"Solarspeicher(S2)\"\nFROM heizung\nWHERE\n  $__timeFilter(date1)\nORDER BY 1\n",
+          "refId": "B",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        },
+        {
+          "format": "time_series",
+          "group": [],
+          "metricColumn": "none",
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date1 AS \"time\",\n  s6 AS \"Rücklauf(S6)\"\nFROM heizung\nWHERE\n  $__timeFilter(date1)\nORDER BY 1\n",
+          "refId": "C",
+          "select": [
+            [
+              {
+                "params": [
+                  "value"
+                ],
+                "type": "column"
+              }
+            ]
+          ],
+          "timeColumn": "time",
+          "where": [
+            {
+              "name": "$__timeFilter",
+              "params": [],
+              "type": "macro"
+            }
+          ]
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "Kreislauf Rücklaufanhebung",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:83",
+          "format": "celsius",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:84",
+          "decimals": null,
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": "100",
+          "min": "0",
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": null,
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "hiddenSeries": false,
       "id": 13,
       "legend": {
         "avg": false,
@@ -1212,7 +1390,7 @@
     "list": []
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-2d",
     "to": "now"
   },
   "timepicker": {
@@ -1246,5 +1424,5 @@
   "variables": {
     "list": []
   },
-  "version": 1
+  "version": 3
 }
