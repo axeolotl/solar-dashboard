@@ -592,12 +592,12 @@
       ],
       "thresholds": [
         {
-          "$$hashKey": "object:516",
+          "$$hashKey": "object:253",
           "colorMode": "critical",
           "fill": true,
           "line": true,
           "op": "gt",
-          "value": 80,
+          "value": 90,
           "yaxis": "left"
         }
       ],
@@ -621,10 +621,11 @@
       "yaxes": [
         {
           "$$hashKey": "object:153",
+          "decimals": null,
           "format": "celsius",
           "label": null,
           "logBase": 1,
-          "max": null,
+          "max": "90",
           "min": "0",
           "show": true
         },
@@ -1424,5 +1425,5 @@
   "variables": {
     "list": []
   },
-  "version": 1
+  "version": 4
 }
