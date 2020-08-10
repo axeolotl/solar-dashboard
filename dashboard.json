@@ -454,7 +454,7 @@
           {
             "evaluator": {
               "params": [
-                80
+                90
               ],
               "type": "gt"
             },
@@ -1252,7 +1252,7 @@
           "label": null,
           "logBase": 1,
           "max": null,
-          "min": null,
+          "min": "0",
           "show": true
         },
         {
@@ -1424,5 +1424,5 @@
   "variables": {
     "list": []
   },
-  "version": 3
+  "version": 1
 }
