@@ -477,7 +477,7 @@
           {
             "evaluator": {
               "params": [
-                40
+                30
               ],
               "type": "lt"
             },
