@@ -1,2 +1,3 @@
 data/certbot/
 data/postgres/
+data/influxdb/
