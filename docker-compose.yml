@@ -11,6 +11,7 @@ services:
       - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
       - ./notifiers.yml:/etc/grafana/provisioning/notifiers/all.yml
       - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json
+      - ./dashboard-feinstaub.json:/var/lib/grafana/dashboards/feinstaub-dashboard.json
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
