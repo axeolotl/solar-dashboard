@@ -12,6 +12,7 @@ services:
       - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
       - ./notifiers.yml:/etc/grafana/provisioning/notifiers/all.yml
       - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json
+      - ./dashboard-feinstaub.json:/var/lib/grafana/dashboards/feinstaub-dashboard.json
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
@@ -35,8 +36,11 @@ services:
       - grafnet
     ports:
       - '8086:8086'
+    expose:
+      - "8088"
     environment:
       - INFLUXDB_DB=sensorcommunity
+      - INFLUXDB_BIND_ADDRESS=0.0.0.0:8088
       - INFLUXDB_HTTP_AUTH_ENABLED=true
       - INFLUXDB_HTTP_PPROF_ENABLED=false
       - INFLUXDB_ADMIN_USER=admin
