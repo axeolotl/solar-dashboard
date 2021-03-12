@@ -1,3 +1,4 @@
 SHELL=/bin/bash
 # Example - replace $HOME/solar-dashboard with project root directory
 5,35 * * * * ( date ; $HOME/solar-dashboard/update-db.sh ) >> $HOME/solar-dashboard/update.sh.log 2>&1
+20 3 * * * ( date ; $HOME/solar-dashboard/backup-influxdb.sh ) >> $HOME/solar-dashboard/backup.log 2>&1
