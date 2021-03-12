@@ -1,8 +1,12 @@
 #!/bin/bash
 BACKUP_NAME=influx-`date -I`.bak
 BACKUP_PATH=$HOME/backups/$BACKUP_NAME
-if [ -d "$BACKUP_PATH"] ; then
+if [ -d "$BACKUP_PATH" ] ; then
   echo "Backup directory already exists: $BACKUP_PATH"
+  exit 1
+fi
+if [ -f "$BACKUP_PATH.tgz" ] ; then
+  echo "Backup archive already exists: $BACKUP_PATH.tgz"
   exit 1
 fi
 if ! mkdir -p $BACKUP_PATH ; then
