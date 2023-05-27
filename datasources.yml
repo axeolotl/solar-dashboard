@@ -21,7 +21,8 @@ datasources:
     access: proxy
     database: sensorcommunity
     user: grafana
-    password: "${INFLUXDB_READ_USER_PASSWORD}"
     url: http://influxdb:8086
     jsonData:
       httpMode: POST
+    secureJsonData:
+      password: ${INFLUXDB_READ_USER_PASSWORD}
