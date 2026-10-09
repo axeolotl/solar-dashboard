@@ -1,5 +1,5 @@
-DROP VIEW heizung_pro_tag;
-DROP TABLE heizung;
+DROP VIEW IF EXISTS heizung_pro_tag;
+DROP TABLE IF EXISTS heizung;
 CREATE TABLE heizung (
 date1  timestamp (0) with time zone primary key,
 S1   real, 
