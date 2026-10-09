@@ -43,7 +43,10 @@ crontab < crontab
 * login as admin at https://DASHBOARD_DOMAIN/
 * select dashboard "Solar Dashboard"
 * see your data
-* create a user in "Viewer" role if desired e.g. for running in kiosk mode
+* a read-only user `GRAFANA_VIEWER_USER` (role "Viewer", e.g. for kiosk mode) is
+  created by the one-shot service `grafana-users` (`grafana-users.sh`) on every
+  `./docker-up.sh`; changing `GRAFANA_VIEWER_PASSWORD` in config.sh and running
+  `./docker-up.sh` updates the password. Leave `GRAFANA_VIEWER_USER` empty to skip.
 
 Note: `GRAFANA_ADMIN_PASSWORD` is only applied when Grafana initializes its
 database in the `grafana-storage` volume for the first time. Change the

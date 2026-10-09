@@ -8,6 +8,10 @@ WLAN_SD_IP=192.168.80.42
 DASHBOARD_DOMAIN=solar.example.com
 # configure to your liking.
 GRAFANA_ADMIN_PASSWORD=admin
+# optional read-only grafana user (role "Viewer"), e.g. for kiosk mode;
+# created/updated on every ./docker-up.sh, leave GRAFANA_VIEWER_USER empty to skip
+GRAFANA_VIEWER_USER=viewer
+GRAFANA_VIEWER_PASSWORD=viewer-secret
 PG_ADMIN_PASSWORD=topsecret
 # password of the read-only database user "grafanareader" used by the grafana data source
 # (must not contain "$", grafana would expand it as a variable reference)
