@@ -15,7 +15,12 @@ Data will then be imported into a database running in a docker image. A second d
 Prerequisites:
 
 * docker
-* docker-compose
+* docker compose plugin (Compose v2, `docker compose ...`)
+
+Components (pinned in `docker-compose.yml`):
+
+* Grafana 13.2.3 (`grafana/grafana:13.2.3-ubuntu`)
+* PostgreSQL 18.6 (`postgres:18.6`)
 
 Installation:
 
@@ -39,6 +44,29 @@ crontab < crontab
 * select dashboard "Solar Dashboard"
 * see your data
 * create a user in "Viewer" role if desired e.g. for running in kiosk mode
+
+Note: `GRAFANA_ADMIN_PASSWORD` is only applied when Grafana initializes its
+database in the `grafana-storage` volume for the first time. Change the
+password in the Grafana UI afterwards (or `docker volume rm grafana-storage`
+and re-run `./init-docker.sh` to start from scratch).
+
+## Upgrading from the Grafana 6 / PostgreSQL 9 setup
+
+The database contents are imported from the log files, so no dump/restore
+is needed:
+
+```bash
+./docker-down.sh
+git pull
+./docker-up.sh
+# re-import all log files into the new PostgreSQL 18 database
+./init-db.sh
+```
+
+PostgreSQL data is now kept in the named volume `solar_dashboard_postgres-data`
+(mounted at `/var/lib/postgresql`, as required by the PostgreSQL 18 images).
+The old PostgreSQL 9 data lived in an anonymous volume and can be removed
+with `docker volume prune`.
 
 ## TODO
 * turn update scripts into a docker image, too
