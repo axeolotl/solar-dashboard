@@ -24,7 +24,7 @@ Components (pinned in `docker-compose.yml`):
 
 Installation:
 
-* edit config.sh to provide `SOLAR_HEAT_DIR` and `WLAN_SD_IP`
+* edit config.sh to provide `SOLAR_HEAT_DIR`, `WLAN_SD_IP` and `DASHBOARD_DOMAIN`
 * edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD`, `PG_ADMIN_PASSWORD` and `PG_GRAFANA_PASSWORD` (read-only database user used by Grafana, must not contain `$`)
 * edit crontab to provide project directory
 * then:
@@ -40,7 +40,7 @@ Installation:
 crontab < crontab
 ```
 
-* login as admin at http://localhost:3000/ 
+* login as admin at https://DASHBOARD_DOMAIN/
 * select dashboard "Solar Dashboard"
 * see your data
 * create a user in "Viewer" role if desired e.g. for running in kiosk mode
@@ -50,7 +50,24 @@ database in the `grafana-storage` volume for the first time. Change the
 password in the Grafana UI afterwards (or `docker volume rm grafana-storage`
 and re-run `./init-docker.sh` to start from scratch).
 
-## Upgrading from the Grafana 6 / PostgreSQL 9 setup
+## HTTPS
+
+Grafana is only reachable through the [Caddy](https://caddyserver.com/)
+reverse proxy (see `Caddyfile`), which obtains and renews a Let's Encrypt
+certificate for `DASHBOARD_DOMAIN` automatically. Requirements:
+
+* a DNS A/AAAA record for `DASHBOARD_DOMAIN` pointing to the docker host
+* ports 80 and 443 (TCP, plus 443/UDP for HTTP/3) forwarded to the docker host
+
+Certificates are kept in the `caddy-data` volume; don't delete it, or Caddy
+has to request new certificates (Let's Encrypt rate limits apply).
+For a quick local test, `DASHBOARD_DOMAIN=localhost` makes Caddy use a
+self-signed certificate from its internal CA instead.
+
+PostgreSQL is attached to an internal network only: it is reachable by Grafana
+(and via `docker compose exec`), but has no connection to the outside.
+
+ the Grafana 6 / PostgreSQL 9 setup
 
 The database contents are imported from the log files, so no dump/restore
 is needed:
