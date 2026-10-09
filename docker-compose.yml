@@ -1,6 +1,6 @@
 services:
   grafana:
-    image: grafana/grafana:6.7.1-ubuntu
+    image: grafana/grafana:13.2.3-ubuntu
     networks:
       - grafnet
     ports:
@@ -9,7 +9,7 @@ services:
       - grafana-storage:/var/lib/grafana
       - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml:ro
       - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml:ro
-      - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json:ro
+      - ./dashboard.json:/etc/grafana/dashboards/solar-dashboard.json:ro
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
