@@ -2,17 +2,22 @@ apiVersion: 1
 
 datasources:
   - name: Postgres
-    type: postgres
+    # plugin id of the bundled PostgreSQL data source since Grafana 10.3
+    # ("postgres" is still accepted as an alias)
+    type: grafana-postgresql-datasource
+    # fixed uid, referenced by dashboard.json
+    uid: solar-postgres
     url: postgres:5432
-    database: postgres
     isDefault: true
+    editable: false
     user: grafanareader
     secureJsonData:
       password: "password"
     jsonData:
+      database: postgres
       sslmode: "disable" # disable/require/verify-ca/verify-full
-      maxOpenConns: 0         # Grafana v5.4+
-      maxIdleConns: 2         # Grafana v5.4+
-      connMaxLifetime: 14400  # Grafana v5.4+
-      postgresVersion: 903 # 903=9.3, 904=9.4, 905=9.5, 906=9.6, 1000=10
+      maxOpenConns: 0 # 0 = unlimited
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1500 # highest selectable option ("15+"), used for PostgreSQL 18
       timescaledb: false

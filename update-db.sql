@@ -1,4 +1,4 @@
-DROP TABLE heizung_upd;
+DROP TABLE IF EXISTS heizung_upd;
 CREATE TABLE heizung_upd (
 date1  timestamp (0) with time zone primary key,
 S1   real, 

@@ -2,4 +2,5 @@
 # raspberry pie edition
 SCRIPTDIR=`dirname $0`
 . "$SCRIPTDIR/config.sh"
-docker run -i -a stdin -a stdout -a stderr --rm --network solar_dashboard_grafnet --link postgres:postgres -e PGPASSWORD="${PG_ADMIN_PASSWORD}" postgres psql -h postgres -U postgres <$SCRIPTDIR/init-db.sql 
+export PG_ADMIN_PASSWORD SOLAR_HEAT_DIR GRAFANA_ADMIN_PASSWORD
+docker compose -p solar_dashboard -f "${SCRIPTDIR}/docker-compose.yml" exec -T postgres psql -U postgres <${SCRIPTDIR}/init-db.sql

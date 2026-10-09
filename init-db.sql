@@ -1,5 +1,5 @@
-DROP VIEW heizung_pro_tag;
-DROP TABLE heizung;
+DROP VIEW IF EXISTS heizung_pro_tag;
+DROP TABLE IF EXISTS heizung;
 CREATE TABLE heizung (
 date1  timestamp (0) with time zone primary key,
 S1   real, 
@@ -29,7 +29,9 @@ Heat_week   integer,
 Power		integer
 );
 
-create view heizung_pro_tag as select date_trunc('day',date1) as date1, max(heat)-min(heat) as heat_today from heizung group by 1;
+-- aggregate per local (Europe/Berlin) day, independent of the session time zone
+-- of the reading client (Grafana connects with the server default, UTC)
+create view heizung_pro_tag as select date_trunc('day', date1, 'Europe/Berlin') as date1, max(heat)-min(heat) as heat_today from heizung group by 1;
 
 SET DateStyle TO 'DMY';
 set timezone TO 'Europe/Berlin';

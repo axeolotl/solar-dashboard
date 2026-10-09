@@ -1,30 +1,42 @@
-version: "3.7"
-
 services:
   grafana:
-    image: grafana/grafana:6.7.1-ubuntu
-    networks: 
+    image: grafana/grafana:13.2.3-ubuntu
+    networks:
       - grafnet
     ports:
       - 3000:3000
     volumes:
-      - grafana-storage
-      - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml
-      - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml
-      - ./dashboard.json:/var/lib/grafana/dashboards/solar-dashboard.json
+      - grafana-storage:/var/lib/grafana
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml:ro
+      - ./dashboards.yml:/etc/grafana/provisioning/dashboards/all.yml:ro
+      - ./dashboard.json:/etc/grafana/dashboards/solar-dashboard.json:ro
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
   postgres:
-    image: postgres:9
+    image: postgres:18.6
     container_name: postgres
-    networks: 
+    networks:
       - grafnet
     environment:
       - POSTGRES_PASSWORD=${PG_ADMIN_PASSWORD}
     volumes:
+      # PostgreSQL 18+ images keep PGDATA in a version-specific
+      # subdirectory (/var/lib/postgresql/18/docker), so the volume
+      # is mounted at /var/lib/postgresql
+      - postgres-data:/var/lib/postgresql
       - ${SOLAR_HEAT_DIR}:/tmp/SC514:ro
+    restart: unless-stopped
 
 networks:
   grafnet:
+
+volumes:
+  # created by init-docker.sh
+  grafana-storage:
+    external: true
+  postgres-data:
