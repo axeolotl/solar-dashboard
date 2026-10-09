@@ -25,7 +25,7 @@ Components (pinned in `docker-compose.yml`):
 Installation:
 
 * edit config.sh to provide `SOLAR_HEAT_DIR` and `WLAN_SD_IP`
-* edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD` and `PG_ADMIN_PASSWORD`
+* edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD`, `PG_ADMIN_PASSWORD` and `PG_GRAFANA_PASSWORD` (read-only database user used by Grafana, must not contain `$`)
 * edit crontab to provide project directory
 * then:
 
@@ -62,6 +62,10 @@ git pull
 # re-import all log files into the new PostgreSQL 18 database
 ./init-db.sh
 ```
+
+To change `PG_GRAFANA_PASSWORD` later, edit config.sh, re-run `./init-db.sh`
+(sets the database password) and `./docker-up.sh` (recreates Grafana with the
+new data source password).
 
 PostgreSQL data is now kept in the named volume `solar_dashboard_postgres-data`
 (mounted at `/var/lib/postgresql`, as required by the PostgreSQL 18 images).

@@ -5,3 +5,6 @@ WLAN_SD_IP=192.168.80.42
 # configure to your liking.
 GRAFANA_ADMIN_PASSWORD=admin
 PG_ADMIN_PASSWORD=topsecret
+# password of the read-only database user "grafanareader" used by the grafana data source
+# (must not contain "$", grafana would expand it as a variable reference)
+PG_GRAFANA_PASSWORD=readonly-secret
