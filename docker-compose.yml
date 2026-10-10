@@ -88,9 +88,9 @@ networks:
     internal: true
 
 volumes:
-  # created by init-docker.sh
+  # all volumes are managed by compose (named solar_dashboard_<name>); the
+  # former external grafana-storage volume is migrated by docker-up.sh
   grafana-storage:
-    external: true
   postgres-data:
   caddy-data:
   caddy-config:

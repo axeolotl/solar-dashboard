@@ -66,11 +66,11 @@ never `latest`, so that an update is a reviewable, testable commit.
   breaking changes: <https://grafana.com/docs/grafana/latest/breaking-changes/>,
   upgrade guide: <https://grafana.com/docs/grafana/latest/upgrade-guide/>.
 - Grafana keeps its own database (users, sessions, preferences) in the
-  `grafana-storage` volume and migrates it automatically on start. Everything
-  else (data source, dashboard, viewer user) is provisioned from the repo, so a
-  broken Grafana state can always be reset with
-  `docker volume rm grafana-storage && ./init-docker.sh` (admin password is then
-  reset to `GRAFANA_ADMIN_PASSWORD`).
+  `solar_dashboard_grafana-storage` volume and migrates it automatically on
+  start. Everything else (data source, dashboard, viewer user) is provisioned
+  from the repo, so a broken Grafana state can always be reset with
+  `./docker-down.sh && docker volume rm solar_dashboard_grafana-storage &&
+  ./docker-up.sh` (admin password is then reset to `GRAFANA_ADMIN_PASSWORD`).
 - **Panels**: Grafana 12 removed Angular, so all old panel types (`graph`,
   `singlestat`, `table-old`, ...) are gone. Grafana only migrates them on the fly in
   the browser, never in the provisioned file. `dashboard.json` must only use
@@ -98,7 +98,7 @@ never `latest`, so that an update is a reviewable, testable commit.
   provisioning files and *again* inside the substituted value, so passwords
   must not contain `$` (`init-db.sh` enforces this for `PG_GRAFANA_PASSWORD`).
 - `GF_SECURITY_ADMIN_PASSWORD` only applies on the very first start of an empty
-  `grafana-storage` volume.
+  `solar_dashboard_grafana-storage` volume.
 - The `-ubuntu` image variant contains `curl` and `bash`, which the
   healthcheck and `grafana-users.sh` rely on. Check this if switching variants.
 - `grafana-users.sh` uses `/api/users/lookup`, `/api/admin/users`,
@@ -155,7 +155,7 @@ repo with generated test data (`test/gen-testdata.py`, SolexMidi format,
 last 14 days) and checks:
 
 - compose file valid, identical Grafana tags in both services
-- `init-docker.sh`, `docker-up.sh` (waits for the Grafana healthcheck),
+- `docker-up.sh` (waits for the Grafana healthcheck),
   `init-db.sh` (also re-run), `update-db.sh`
 - running PostgreSQL and Grafana versions match the pinned tags
 - data source health, dashboard provisioned, no legacy panel types, **every
@@ -295,7 +295,8 @@ hours if stale) prevents overlapping runs.
 | New setting in `config.sh` | **after you set it** in `config.local.sh` | refused until then |
 | PostgreSQL major update | **on request**: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh` | volume deleted, re-import |
 | `crontab` | **no** | a note is printed; install it with `crontab crontab` after review |
-| External volumes (`grafana-storage`), host requirements (Docker version, ports, DNS, firewall) | **no** | mark the commit `Deploy: manual` |
+| Renaming volumes or moving persistent data | only with a migration | add an idempotent one-time migration to `docker-up.sh` (like the `grafana-storage` one), otherwise mark the commit `Deploy: manual` |
+| Host requirements (Docker version, ports, DNS, firewall) | **no** | mark the commit `Deploy: manual` |
 | Changes needing data migration that can't be rebuilt from the log files (e.g. Grafana users/settings, data not in the log files) | **no** | mark the commit `Deploy: manual` and describe the steps |
 | Changes in `config.local.sh` (your settings) | not via git | run `./docker-up.sh` (and `./init-db.sh` for `PG_GRAFANA_PASSWORD`) yourself |
 
@@ -320,7 +321,7 @@ would then be behind `master` and the next auto-deploy run would bring the
 broken version back (comment out the crontab line first if you need to
 experiment on the host). Grafana's database migrations are not
 reversible: if an older Grafana refuses to start on the migrated volume, reset
-it with `docker volume rm grafana-storage && ./init-docker.sh` (everything
+it with `docker volume rm solar_dashboard_grafana-storage` (everything
 important is provisioned). A PostgreSQL major rollback is a major
 version change like an upgrade: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh`
 (or by hand: fresh `solar_dashboard_postgres-data` volume and `./init-db.sh`).

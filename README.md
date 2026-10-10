@@ -45,9 +45,7 @@ Installation:
 * then:
 
 ```bash
-# create docker resources
-./init-docker.sh
-# docker compose up
+# docker compose up (creates the volumes on the first run)
 ./docker-up.sh
 # load data from files into database
 ./init-db.sh
@@ -67,11 +65,11 @@ crontab < crontab
   `./docker-up.sh` updates the password. Leave `GRAFANA_VIEWER_USER` empty to skip.
 
 Note: `GRAFANA_ADMIN_PASSWORD` is only applied when Grafana initializes its
-database in the `grafana-storage` volume for the first time. To change it
-later, change it in the Grafana UI *and* in config.local.sh: the
+database in the `solar_dashboard_grafana-storage` volume for the first time.
+To change it later, change it in the Grafana UI *and* in config.local.sh: the
 `grafana-users` job (and `auto-deploy.sh` without a viewer user) log in with
-it. To start from scratch instead: `docker volume rm grafana-storage` and
-re-run `./init-docker.sh`.
+it. To start from scratch instead: `./docker-down.sh && docker volume rm
+solar_dashboard_grafana-storage && ./docker-up.sh`.
 
 ## HTTPS
 
@@ -111,6 +109,14 @@ PostgreSQL data is now kept in the named volume `solar_dashboard_postgres-data`
 (mounted at `/var/lib/postgresql`, as required by the PostgreSQL 18 images).
 The old PostgreSQL 9 data lived in an anonymous volume and can be removed
 with `docker volume prune`.
+
+All volumes are managed by docker compose and named `solar_dashboard_<name>`
+(`grafana-storage`, `postgres-data`, `caddy-data`, `caddy-config`);
+`init-docker.sh` is gone. Installations from before used an external volume
+`grafana-storage`: the first `./docker-up.sh` (also when run by
+`auto-deploy.sh`) stops Grafana, copies it to `solar_dashboard_grafana-storage`
+and keeps the old volume as a backup. Once everything works:
+`docker volume rm grafana-storage`.
 
 ## TODO
 * turn update scripts into a docker image, too
