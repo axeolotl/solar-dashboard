@@ -12,7 +12,8 @@ datasources:
     editable: false
     user: grafanareader
     secureJsonData:
-      password: "password"
+      # PG_GRAFANA_PASSWORD from config.sh, passed to the container by docker-compose.yml
+      password: $__env{PG_GRAFANA_PASSWORD}
     jsonData:
       database: postgres
       sslmode: "disable" # disable/require/verify-ca/verify-full

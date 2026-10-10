@@ -13,6 +13,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      PG_GRAFANA_PASSWORD: ${PG_GRAFANA_PASSWORD}
     depends_on:
       - postgres
     restart: unless-stopped
