@@ -1,0 +1,32 @@
+# Enables auto-merge for Dependabot PRs that only contain patch updates.
+# GitHub merges them once all required status checks (branch protection on
+# master: "smoke-test") are green; minor and major updates stay for review.
+#
+# Uses pull_request_target (as in the dependabot/fetch-metadata example) to get
+# a token with write access; no code from the PR is checked out or executed.
+name: Dependabot auto-merge
+
+on: pull_request_target
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'axeolotl/solar-dashboard'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Enable auto-merge for patch updates
+        # update-type is the highest semver change in the (grouped) PR
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

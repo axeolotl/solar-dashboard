@@ -12,11 +12,15 @@ updates:
       time: "06:00"
       timezone: "Europe/Berlin"
     groups:
-      # patch/minor updates of all images in one PR, usually mergeable as-is;
+      # patch updates of all images in one PR - merged automatically once the
+      # smoke test is green (.github/workflows/dependabot-automerge.yml)
+      patch:
+        update-types: ["patch"]
+      # minor updates in one PR, merged manually after review
+      minor:
+        update-types: ["minor"]
       # major updates get separate PRs, they often need changes to
       # dashboard.json / datasources.yml / SQL (see UPDATING.md)
-      minor-and-patch:
-        update-types: ["minor", "patch"]
     commit-message:
       prefix: "docker"
     open-pull-requests-limit: 5
