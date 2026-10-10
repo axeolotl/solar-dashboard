@@ -18,7 +18,6 @@ while [ $N -ge 0 ] ; do
     # sftp instead of ssh+scp: works with a nologin account restricted to
     # internal-sftp. A leading "-" ignores errors (directory already exists).
     sftp -b - solarinbox@solar.ferne-gefil.de <<EOF
--mkdir SC514
 -mkdir "SC514/${YEAR}"
 -mkdir "SC514/${DIR}"
 put "${SOLAR_HEAT_DIR}/${DIR}/${FILE}" "SC514/${DIR}/${FILE}"
