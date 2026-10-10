@@ -1,7 +1,8 @@
 #!/bin/bash
 SCRIPTDIR=`dirname $0`
+set -a  # export all variables from config.sh (used by docker-compose.yml)
 . "${SCRIPTDIR}/config.sh"
-export PG_ADMIN_PASSWORD SOLAR_HEAT_DIR GRAFANA_ADMIN_PASSWORD
+set +a
 docker compose -p solar_dashboard -f "${SCRIPTDIR}/docker-compose.yml" up -d 
 
 # docker run \

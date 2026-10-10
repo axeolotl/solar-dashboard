@@ -42,7 +42,10 @@ delete from heizung where s3 > 300;
 delete from heizung where s9 > 300;
 delete from heizung where s1 > 300;
 
-CREATE USER grafanareader WITH PASSWORD 'password';
+-- create the read-only user on first run, (re)set its password from config.sh
+-- (PG_GRAFANA_PASSWORD, passed in by init-db.sh as psql variable) on every run
+SELECT 'CREATE ROLE grafanareader LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'grafanareader')\gexec
+ALTER ROLE grafanareader WITH LOGIN PASSWORD :'grafana_password';
 GRANT USAGE ON SCHEMA public TO grafanareader;
 GRANT SELECT ON public.heizung TO grafanareader;
 GRANT SELECT ON public.heizung_pro_tag TO grafanareader;
