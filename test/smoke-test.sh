@@ -63,6 +63,10 @@ URL=https://localhost
 CURL=(curl -sk --max-time 20)
 
 cleanup() {
+  if [ "$FAILED" != 0 ] ; then
+    echo; echo "=== container logs (last 50 lines each) ==="
+    "${COMPOSE[@]}" logs --no-color --tail 50 2>&1
+  fi
   if [ "${KEEP:-0}" = 1 ] ; then
     echo "KEEP=1: stack left running, files in $WORK"
     echo "        login: $URL/ admin / $GRAFANA_ADMIN_PASSWORD"

@@ -199,17 +199,37 @@ important is provisioned). After a PostgreSQL major rollback, re-import with
 
 ## Automating update runs
 
-- **Dependabot / Renovate** can open PRs that bump the image tags in
-  `docker-compose.yml` (both understand Docker Compose files). They do not
-  adapt `dashboard.json`, `datasources.yml` or the SQL, so major upgrades
-  still need the steps above.
-- **CI**: running `test/smoke-test.sh` in a GitHub Actions workflow on every
-  PR (Docker is available on `ubuntu-latest` runners) tells you whether a
-  bot PR can be merged as-is.
-- **AI agent** (e.g. a scheduled Perplexity Computer task): give it this file
-  as the procedure, let it run `test/check-versions.py`, apply and test the
-  changes (`SANDBOX=1` if needed) and open a PR with the results. A prompt
-  that worked:
+Configured in this repo:
+
+- **Dependabot** (`.github/dependabot.yml`) checks the image tags in
+  `docker-compose.yml` every Monday morning: patch/minor updates of all images
+  come as one grouped PR, each major update as its own PR. Once a month it
+  also bumps the actions used in the workflow. Dependabot only changes tags. It
+  never touches `dashboard.json`, `datasources.yml` or the SQL, so major
+  updates may need follow-up commits on the Dependabot branch (steps above).
+  The config is read from the default branch, so it takes effect once it is
+  merged to `master`.
+- **Smoke test workflow** (`.github/workflows/smoke-test.yml`) runs
+  `test/smoke-test.sh` on every PR (including Dependabot's), on pushes to
+  `master` and manually (*Actions → smoke test → Run workflow*). The PASS/FAIL
+  list is shown in the job summary, container logs are printed on failure, and
+  the dashboard screenshot is attached as artifact `dashboard-screenshot`
+  (compare with `docs/dashboard.png`).
+
+Typical flow: a green grouped minor/patch PR can be merged (then deploy, see
+step 6). A red PR, or any major update, gets reviewed with this guide: read
+the release notes, fix the files, push to the Dependabot branch and let the
+workflow re-run.
+
+Further options:
+
+- **Auto-merge** green patch PRs with a small workflow using
+  `dependabot/fetch-metadata` and `gh pr merge --auto` (requires branch
+  protection with the smoke test as a required check).
+- **AI agent** (e.g. a scheduled Perplexity Computer task, or one triggered by
+  a failing Dependabot PR): give it this file as the procedure, let it run
+  `test/check-versions.py`, apply and test the changes (`SANDBOX=1` if needed)
+  and open or fix a PR. A prompt that worked:
 
   > Update https://github.com/axeolotl/solar-dashboard to the newest versions of
   > all components following UPDATING.md: one commit per component, adapt the

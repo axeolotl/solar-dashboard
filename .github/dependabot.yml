@@ -1,0 +1,34 @@
+# Dependabot version updates, see UPDATING.md ("Automating update runs").
+# Config is read from the default branch. Every PR is checked by the
+# smoke test workflow (.github/workflows/smoke-test.yml).
+version: 2
+updates:
+  # image tags in docker-compose.yml (grafana, postgres, caddy)
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    groups:
+      # patch/minor updates of all images in one PR, usually mergeable as-is;
+      # major updates get separate PRs, they often need changes to
+      # dashboard.json / datasources.yml / SQL (see UPDATING.md)
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "docker"
+    open-pull-requests-limit: 5
+
+  # actions used in .github/workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      timezone: "Europe/Berlin"
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
