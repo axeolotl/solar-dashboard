@@ -37,7 +37,33 @@ services:
       PG_GRAFANA_PASSWORD: ${PG_GRAFANA_PASSWORD}
     depends_on:
       - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
     restart: unless-stopped
+
+  # one-shot job: creates/updates the viewer user from config.sh
+  grafana-users:
+    # same image as grafana (kept as literal tag so that update bots bump both)
+    image: grafana/grafana:13.2.3-ubuntu
+    entrypoint: ["bash", "/grafana-users.sh"]
+    networks:
+      - frontnet
+    volumes:
+      - ./grafana-users.sh:/grafana-users.sh:ro
+    environment:
+      GRAFANA_URL: http://grafana:3000
+      GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GRAFANA_VIEWER_USER: ${GRAFANA_VIEWER_USER:-}
+      GRAFANA_VIEWER_PASSWORD: ${GRAFANA_VIEWER_PASSWORD:-}
+    depends_on:
+      grafana:
+        condition: service_healthy
+    restart: "no"
 
   postgres:
     image: postgres:18.6
