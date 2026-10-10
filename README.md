@@ -31,8 +31,16 @@ See [UPDATING.md](UPDATING.md) for how to update them and how to test an update
 
 Installation:
 
-* edit config.sh to provide `SOLAR_HEAT_DIR`, `WLAN_SD_IP` and `DASHBOARD_DOMAIN`
-* edit config.sh to chose your passwords for `GRAFANA_ADMIN_PASSWORD`, `PG_ADMIN_PASSWORD` and `PG_GRAFANA_PASSWORD` (read-only database user used by Grafana, must not contain `$`)
+* create `config.local.sh` (not under version control, overrides the defaults
+  in `config.sh` - don't edit `config.sh` itself, so updates can be pulled
+  without conflicts) with your values for `SOLAR_HEAT_DIR`, `WLAN_SD_IP`,
+  `DASHBOARD_DOMAIN` and your passwords for `GRAFANA_ADMIN_PASSWORD`,
+  `GRAFANA_VIEWER_PASSWORD`, `PG_ADMIN_PASSWORD` and `PG_GRAFANA_PASSWORD`
+  (read-only database user used by Grafana, must not contain `$`), e.g.:
+
+  ```bash
+  grep -E '^[A-Z_]+=' config.sh > config.local.sh   # then edit config.local.sh
+  ```
 * edit crontab to provide project directory
 * then:
 
@@ -47,12 +55,15 @@ Installation:
 crontab < crontab
 ```
 
+* optionally deploy new versions from GitHub automatically, see
+  [UPDATING.md](UPDATING.md#automatic-deployment)
+
 * login as admin at https://DASHBOARD_DOMAIN/
 * select dashboard "Solar Dashboard"
 * see your data
 * a read-only user `GRAFANA_VIEWER_USER` (role "Viewer", e.g. for kiosk mode) is
   created by the one-shot service `grafana-users` (`grafana-users.sh`) on every
-  `./docker-up.sh`; changing `GRAFANA_VIEWER_PASSWORD` in config.sh and running
+  `./docker-up.sh`; changing `GRAFANA_VIEWER_PASSWORD` in config.local.sh and running
   `./docker-up.sh` updates the password. Leave `GRAFANA_VIEWER_USER` empty to skip.
 
 Note: `GRAFANA_ADMIN_PASSWORD` is only applied when Grafana initializes its
@@ -90,7 +101,7 @@ git pull
 ./init-db.sh
 ```
 
-To change `PG_GRAFANA_PASSWORD` later, edit config.sh, re-run `./init-db.sh`
+To change `PG_GRAFANA_PASSWORD` later, edit config.local.sh, re-run `./init-db.sh`
 (sets the database password) and `./docker-up.sh` (recreates Grafana with the
 new data source password).
 

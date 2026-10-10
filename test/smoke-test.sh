@@ -39,7 +39,7 @@ fi
 
 # --- prepare a copy of the repo with test configuration ----------------------
 cp -r "$REPO" "$RUN"
-rm -rf "$RUN/.git"
+rm -rf "$RUN/.git" "$RUN/config.local.sh"
 python3 "$REPO/test/gen-testdata.py" "$DATA" "$DAYS"
 cat > "$RUN/config.sh" <<EOF
 SOLAR_HEAT_DIR=$DATA

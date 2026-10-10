@@ -16,3 +16,9 @@ PG_ADMIN_PASSWORD=topsecret
 # password of the read-only database user "grafanareader" used by the grafana data source
 # (must not contain "$", grafana would expand it as a variable reference)
 PG_GRAFANA_PASSWORD=readonly-secret
+# Local settings: put your actual values into config.local.sh (same syntax,
+# not under version control) instead of editing this file, so that
+# "git pull" / auto-deploy.sh never conflict with local changes.
+if [ -f "${SCRIPTDIR}/config.local.sh" ] ; then
+  . "${SCRIPTDIR}/config.local.sh"
+fi
