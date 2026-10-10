@@ -160,14 +160,25 @@ $(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
   fi
 
   # --- verify -----------------------------------------------------------------
+  # a dashboard query through Grafana: checks Grafana, the provisioned data
+  # source, the grafanareader password and grants, and that the table has data.
+  # Uses the viewer user (its password is re-applied on every start), as the
+  # admin password may have been changed in the UI.
+  if [ -n "${GRAFANA_VIEWER_USER:-}" ] ; then
+    GF_AUTH="$GRAFANA_VIEWER_USER:$GRAFANA_VIEWER_PASSWORD"
+  else
+    GF_AUTH="admin:$GRAFANA_ADMIN_PASSWORD"
+  fi
   ds_healthy() {
-    "${COMPOSE[@]}" exec -T grafana curl -fsS --max-time 5 -u "admin:${GRAFANA_ADMIN_PASSWORD}" \
-      http://localhost:3000/api/datasources/uid/solar-postgres/health | grep -q '"status":"OK"'
+    "${COMPOSE[@]}" exec -T grafana curl -fsS --max-time 10 -u "$GF_AUTH" \
+      -H 'Content-Type: application/json' http://localhost:3000/api/ds/query \
+      -d '{"queries":[{"refId":"A","datasource":{"uid":"solar-postgres"},"rawSql":"select count(*) from heizung","format":"table"}]}' \
+      | grep -q '"values":\[\[[1-9]'
   }
   HEALTHY=0
   wait_for ds_healthy && HEALTHY=1
   PROBLEMS=""
-  [ $HEALTHY = 1 ] || PROBLEMS="$PROBLEMS grafana/data source not healthy;"
+  [ $HEALTHY = 1 ] || PROBLEMS="$PROBLEMS dashboard query via grafana failed (or table heizung empty);"
   for s in caddy grafana postgres ; do
     [ "$("${COMPOSE[@]}" ps --status running -q "$s" | wc -l)" -ge 1 ] || PROBLEMS="$PROBLEMS $s not running;"
   done
