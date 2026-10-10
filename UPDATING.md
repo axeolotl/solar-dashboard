@@ -35,6 +35,10 @@ never `latest`, so that an update is a reviewable, testable commit.
    bump the tag, adapt the files listed in the table above, update the
    versions in `README.md` and the history table at the end of this file.
    Patch/minor updates are usually just the tag bump.
+   If deploying needs a manual step that `auto-deploy.sh` can't do (see
+   [what is deployed automatically](#what-is-deployed-automatically)), add a
+   `Deploy: manual` trailer to the commit message, with the instructions in
+   the message body.
 
 4. **Run the smoke test** (see [Testing](#testing)) – it must end with
    `ALL CHECKS PASSED` – and compare `test/screenshot.png` with
@@ -42,7 +46,8 @@ never `latest`, so that an update is a reviewable, testable commit.
 
 5. **Open a PR**, listing versions before/after and the smoke-test result.
 
-6. **Deploy** on the dashboard host after merging:
+6. **Deploy** on the dashboard host after merging - automatically by
+   `auto-deploy.sh` (see [Automatic deployment](#automatic-deployment)) or by hand:
 
    ```bash
    ./docker-down.sh
@@ -105,11 +110,14 @@ never `latest`, so that an update is a reviewable, testable commit.
 - Release notes: <https://www.postgresql.org/docs/release/>,
   image docs: <https://hub.docker.com/_/postgres>.
 - **Minor updates** (18.6 → 18.7): tag bump only, data files are compatible.
-- **Major updates** (18 → 19): the data directory is *not* compatible. The
-  database only contains data imported from the log files, so no dump/restore is
-  needed: deploy, then `docker volume rm solar_dashboard_postgres-data` (after
-  `./docker-down.sh`) or let the new version start on a fresh volume, and run
-  `./init-db.sh` to re-import everything.
+- **Major updates** (18 → 19): the data directory is *not* compatible, and
+  the new image refuses to start while the old version's data is in the volume
+  ("there appears to be PostgreSQL data in /var/lib/postgresql/18/docker",
+  verified with 18.6 → 19beta4). The database only contains data imported from
+  the log files, so no dump/restore is needed: delete the volume and re-import.
+  With auto-deploy: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh` does exactly
+  that. By hand: `./docker-down.sh && docker volume rm solar_dashboard_postgres-data
+  && ./docker-up.sh && ./init-db.sh`.
 - Since 18 the image uses `PGDATA=/var/lib/postgresql/<major>/docker` and
   declares the volume at `/var/lib/postgresql`; the named volume is mounted
   there. Older images used `/var/lib/postgresql/data`. Check `docker inspect
@@ -189,13 +197,127 @@ weekly yield as bars, primary circuit temperatures with max values in the
 legend, storage temperature, pump activity, heat transmitted). Replace
 `docs/dashboard.png` when the look changes intentionally.
 
+## Automatic deployment
+
+`auto-deploy.sh` runs from cron on the dashboard host. It fetches `master` and,
+if there are new commits, checks them, fast-forwards the checkout and
+activates the changes. It is silent when there is nothing to do, so cron
+mail or the log only contain deployments and problems.
+
+### Activation
+
+1. Move local settings out of `config.sh` (a tracked file must not have local
+   changes, otherwise `git pull` conflicts and auto-deploy refuses to run):
+
+   ```bash
+   cd ~/solar-dashboard
+   grep -E '^[A-Z_]+=' config.sh > config.local.sh   # current values
+   git checkout config.sh                            # back to the defaults
+   git status --short                                # must show no 'M' lines
+   ```
+
+2. Make sure the checkout is on `master` and tracks GitHub
+   (`git remote -v`; a public repo needs no credentials for `git fetch`).
+
+3. Try it:
+
+   ```bash
+   AUTO_DEPLOY_DRY_RUN=1 ./auto-deploy.sh   # shows what would happen
+   ./auto-deploy.sh; echo $?                # 0 = nothing to do or deployed
+   ```
+
+4. Enable it in the crontab (`crontab -e`, see the commented line in `crontab`):
+
+   ```
+   */15 * * * * $HOME/solar-dashboard/auto-deploy.sh >> $HOME/solar-dashboard/auto-deploy.log 2>&1
+   ```
+
+   The cron user needs access to docker (member of the `docker` group), and
+   cron's `PATH` must contain `docker`, `git` and `curl` (on macOS add e.g.
+   `PATH=/usr/local/bin:/usr/bin:/bin` at the top of the crontab). Without the
+   redirection cron mails the output instead.
+
+Exit codes: `0` nothing to do / deployed and healthy, `1` deployment refused
+(nothing changed, see message), `2` deployed but unhealthy (see below).
+
+### What it does
+
+1. **Preflight** (refuses with exit code 1, nothing is changed):
+   - checkout not on `master`, local changes to tracked files, or local
+     commits that prevent a fast-forward
+   - a new commit has a `Deploy: manual` trailer
+   - `config.sh` gained a setting that is not set in `config.local.sh`
+     (defaults are placeholders, e.g. passwords). Add it there and the next
+     run deploys.
+   - PostgreSQL major version changes, unless `AUTO_DEPLOY_PG_REINIT=1`
+2. **Activate**:
+   - only docs, tests or CI changed (`*.md`, `docs/`, `test/`, `.github/`):
+     just update the checkout
+   - otherwise `git merge --ff-only`, `docker compose pull`, then
+     `docker compose up -d --remove-orphans`, which recreates services whose
+     image or configuration changed and re-runs the `grafana-users` job
+   - restart `grafana` if `datasources.yml`, `dashboards.yml` or
+     `dashboard.json` changed, and `caddy` if `Caddyfile` changed. These are
+     single-file bind mounts: after git replaced a file, the container still
+     sees the old one until it restarts.
+   - re-import the database (`init-db.sh`) if `init-db.sql` changed
+   - PostgreSQL major upgrade (with `AUTO_DEPLOY_PG_REINIT=1`): delete the
+     `solar_dashboard_postgres-data` volume, start the new version, re-import.
+     It refuses if `SOLAR_HEAT_DIR` contains no log files.
+3. **Verify** (max. about 1 minute): Grafana's data source health check passes,
+   `caddy`, `grafana` and `postgres` are running, and the `grafana-users` job exited
+   with 0. Otherwise exit code 2 with the last log lines of each service.
+
+The script runs as a single function parsed before execution, so it can
+safely update itself. A lock directory (`.auto-deploy.lock`, removed after 2
+hours if stale) prevents overlapping runs.
+
+### What is deployed automatically
+
+| Change | Automatic? | How |
+|---|---|---|
+| Docs, tests, CI | yes | checkout updated only |
+| Image patch/minor updates (Grafana, Caddy, PostgreSQL minor) | yes | pull + recreate |
+| Grafana major update | yes | Grafana migrates its own database on start; dashboard/data source changes come in the same, smoke-tested PR. Not reversible, see [Rollback](#rollback) |
+| `dashboard.json`, `datasources.yml`, `dashboards.yml` | yes | Grafana restart |
+| `Caddyfile` | yes | Caddy restart |
+| `docker-compose.yml` (env, ports, networks, new services) | yes | recreate affected services. New *named volumes* are created automatically; removed services are deleted (`--remove-orphans`) |
+| `grafana-users.sh`, viewer user changes | yes | job re-runs on every deploy |
+| `init-db.sql` (schema, views) | yes | full re-import from the log files (a few seconds of empty dashboard) |
+| `update-db.sql`, `update-db.sh`, `update-files.sh` | yes | used by the next cron run |
+| `auto-deploy.sh` itself | yes | next run uses the new version |
+| New setting in `config.sh` | **after you set it** in `config.local.sh` | refused until then |
+| PostgreSQL major update | **on request**: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh` | volume deleted, re-import |
+| `crontab` | **no** | a note is printed; install it with `crontab crontab` after review |
+| External volumes (`grafana-storage`), host requirements (Docker version, ports, DNS, firewall) | **no** | mark the commit `Deploy: manual` |
+| Changes needing data migration that can't be rebuilt from the log files (e.g. Grafana users/settings, data not in the log files) | **no** | mark the commit `Deploy: manual` and describe the steps |
+| Changes in `config.local.sh` (your settings) | not via git | run `./docker-up.sh` (and `./init-db.sh` for `PG_GRAFANA_PASSWORD`) yourself |
+
+### When it fails
+
+- **Exit 1 (refused)**: nothing was changed, the dashboard keeps running the
+  previous version. Fix the reason given (e.g. add a setting to
+  `config.local.sh`). For a `Deploy: manual` commit, follow the instructions in
+  its message and deploy by hand (`git merge --ff-only origin/master`, then the
+  steps from the message). The next run continues from there.
+- **Exit 2 (unhealthy)**: the new version is checked out and running, but a
+  check failed. It is reported once; later runs stay silent until there are
+  new commits. Either push a fix to `master` (deployed by the next run) or roll
+  back (see below).
+
 ## Rollback
 
-Revert the merge commit and redeploy. Grafana's database migrations are not
+Revert the merge commit on `master` (`git revert -m 1 <merge>` and push, or
+the "Revert" button of the PR) and redeploy - with auto-deploy enabled, the
+next run deploys the revert. Don't just reset the checkout on the host: it
+would then be behind `master` and the next auto-deploy run would bring the
+broken version back (comment out the crontab line first if you need to
+experiment on the host). Grafana's database migrations are not
 reversible: if an older Grafana refuses to start on the migrated volume, reset
 it with `docker volume rm grafana-storage && ./init-docker.sh` (everything
-important is provisioned). After a PostgreSQL major rollback, re-import with
-`./init-db.sh` on a fresh `solar_dashboard_postgres-data` volume.
+important is provisioned). A PostgreSQL major rollback is a major
+version change like an upgrade: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh`
+(or by hand: fresh `solar_dashboard_postgres-data` volume and `./init-db.sh`).
 
 ## Automating update runs
 
@@ -225,10 +347,13 @@ Configured in this repo:
 Typical flow:
 
 - **Patch PR**: merged automatically when green. Afterwards deploy on the
-  dashboard host (step 6). Note that merges done by the workflow token do not
+  dashboard host (step 6). With [auto-deploy](#automatic-deployment) enabled,
+  patch updates go from Dependabot to the running dashboard without
+  interaction. Note that merges done by the workflow token do not
   trigger the push workflow on `master`; the PR's smoke test already covered
   the exact change.
-- **Green minor PR**: review the release notes, merge, deploy.
+- **Green minor PR**: review the release notes, merge, deploy (automatic
+  with auto-deploy).
 - **Red PR or major update**: follow this guide. Read the release notes, fix the
   files, push to the Dependabot branch and let the workflow re-run. A red
   patch PR stays open (auto-merge waits for green).

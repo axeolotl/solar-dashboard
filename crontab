@@ -1,3 +1,7 @@
 SHELL=/bin/bash
 # Example - replace $HOME/solar-dashboard with project root directory
 0 * * * * ( date ; $HOME/solar-dashboard/update-files.sh && $HOME/solar-dashboard/update-db.sh ) >> $HOME/solar-dashboard/update.sh.log 2>&1
+# Optional: deploy new commits from master automatically (see UPDATING.md,
+# "Automatic deployment"). Prints/logs only when something was deployed or
+# needs attention. cron's PATH must contain docker (e.g. /usr/local/bin on macOS).
+#*/15 * * * * $HOME/solar-dashboard/auto-deploy.sh >> $HOME/solar-dashboard/auto-deploy.log 2>&1
