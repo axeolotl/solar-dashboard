@@ -1,10 +1,28 @@
 services:
+  caddy:
+    image: caddy:2.11.7
+    networks:
+      - frontnet
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # certificates and ACME account, must persist
+      - caddy-config:/config
+    environment:
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN}
+    depends_on:
+      - grafana
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:13.2.3-ubuntu
+    # no published ports: only reachable through caddy
     networks:
+      - frontnet
       - grafnet
-    ports:
-      - 3000:3000
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./datasources.yml:/etc/grafana/provisioning/datasources/all.yml:ro
@@ -13,6 +31,9 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_DOMAIN: ${DASHBOARD_DOMAIN}
+      GF_SERVER_ROOT_URL: https://${DASHBOARD_DOMAIN}/
+      GF_SECURITY_COOKIE_SECURE: "true"
       PG_GRAFANA_PASSWORD: ${PG_GRAFANA_PASSWORD}
     depends_on:
       - postgres
@@ -34,10 +55,16 @@ services:
     restart: unless-stopped
 
 networks:
+  # caddy <-> grafana
+  frontnet:
+  # grafana <-> postgres, no connection to the outside
   grafnet:
+    internal: true
 
 volumes:
   # created by init-docker.sh
   grafana-storage:
     external: true
   postgres-data:
+  caddy-data:
+  caddy-config:
