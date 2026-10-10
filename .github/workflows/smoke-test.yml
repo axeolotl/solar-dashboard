@@ -1,0 +1,58 @@
+# End-to-end smoke test of the complete stack (test/smoke-test.sh, see
+# UPDATING.md) for every pull request - including Dependabot's version
+# updates - and for pushes to master.
+name: smoke test
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-test-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Pull images
+        run: grep -E '^\s+image:' docker-compose.yml | awk '{print $2}' | sort -u | xargs -n1 docker pull -q
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Install playwright (dashboard screenshot)
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run smoke test
+        run: test/smoke-test.sh 2>&1 | tee smoke-test.log
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '### Smoke test'
+            grep -E '^testing ' smoke-test.log || true
+            echo '```'
+            grep -E '^(PASS|FAIL|INFO) |CHECK|ALL CHECKS' smoke-test.log || cat smoke-test.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dashboard-screenshot
+          path: test/screenshot.png
+          if-no-files-found: ignore

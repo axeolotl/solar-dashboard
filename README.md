@@ -1,4 +1,7 @@
 # Solar Dashboard for PAW Solex
+
+[![smoke test](https://github.com/axeolotl/solar-dashboard/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/axeolotl/solar-dashboard/actions/workflows/smoke-test.yml)
+
 ## Intro
 This project allows to inspect the data logged by a PAW Solex solar thermal system (SolexMidi etc) in grafana.
 
