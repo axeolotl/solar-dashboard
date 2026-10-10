@@ -7,7 +7,7 @@
 # Caddy/HTTPS and the viewer user. See UPDATING.md.
 #
 # WARNING: uses the same compose project name, container names and volumes as
-# a real installation (solar_dashboard, postgres, grafana-storage, ...) and
+# a real installation (solar_dashboard, postgres, solar_dashboard_grafana-storage, ...) and
 # binds ports 80/443. Run it on a test machine or CI runner, not on the host
 # running your dashboard. It refuses to run if solar_dashboard containers exist.
 #
@@ -70,11 +70,11 @@ cleanup() {
   if [ "${KEEP:-0}" = 1 ] ; then
     echo "KEEP=1: stack left running, files in $WORK"
     echo "        login: $URL/ admin / $GRAFANA_ADMIN_PASSWORD"
-    echo "        stop:  $RUN/docker-down.sh && docker volume rm grafana-storage solar_dashboard_postgres-data solar_dashboard_caddy-data solar_dashboard_caddy-config"
+    echo "        stop:  $RUN/docker-down.sh && docker volume rm solar_dashboard_grafana-storage solar_dashboard_postgres-data solar_dashboard_caddy-data solar_dashboard_caddy-config"
     return
   fi
   "$RUN/docker-down.sh" >/dev/null 2>&1
-  docker volume rm grafana-storage solar_dashboard_postgres-data \
+  docker volume rm solar_dashboard_grafana-storage solar_dashboard_postgres-data \
     solar_dashboard_caddy-data solar_dashboard_caddy-config >/dev/null 2>&1
   rm -rf "$WORK"
 }
@@ -89,7 +89,6 @@ check "compose file is valid" "${COMPOSE[@]}" config -q
   && pass "grafana and grafana-users use the same image" || fail "grafana and grafana-users use the same image"
 
 # --- startup and import --------------------------------------------------------
-"$RUN/init-docker.sh" >/dev/null
 check "docker-up.sh (waits for grafana healthcheck)" "$RUN/docker-up.sh"
 for i in $(seq 30); do docker exec postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done
 OUT=$("$RUN/init-db.sh" 2>&1)
