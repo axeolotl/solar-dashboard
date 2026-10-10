@@ -60,7 +60,7 @@ case "$status" in
     echo "viewer user '$GRAFANA_VIEWER_USER' created"
     ;;
   401)
-    fail "admin login failed - GRAFANA_ADMIN_PASSWORD only applies on Grafana's first start; update it in config.sh if you changed it in the UI" "$status"
+    fail "admin login failed - GRAFANA_ADMIN_PASSWORD only applies on Grafana's first start; update it in config.local.sh if you changed it in the UI" "$status"
     ;;
   *)
     fail "user lookup failed" "$status"

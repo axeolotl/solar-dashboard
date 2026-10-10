@@ -67,9 +67,11 @@ crontab < crontab
   `./docker-up.sh` updates the password. Leave `GRAFANA_VIEWER_USER` empty to skip.
 
 Note: `GRAFANA_ADMIN_PASSWORD` is only applied when Grafana initializes its
-database in the `grafana-storage` volume for the first time. Change the
-password in the Grafana UI afterwards (or `docker volume rm grafana-storage`
-and re-run `./init-docker.sh` to start from scratch).
+database in the `grafana-storage` volume for the first time. To change it
+later, change it in the Grafana UI *and* in config.local.sh: the
+`grafana-users` job (and `auto-deploy.sh` without a viewer user) log in with
+it. To start from scratch instead: `docker volume rm grafana-storage` and
+re-run `./init-docker.sh`.
 
 ## HTTPS
 

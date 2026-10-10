@@ -253,9 +253,12 @@ Exit codes: `0` nothing to do / deployed and healthy, `1` deployment refused
 2. **Activate**:
    - only docs, tests or CI changed (`*.md`, `docs/`, `test/`, `.github/`):
      just update the checkout
-   - otherwise `git merge --ff-only`, `docker compose pull`, then
-     `docker compose up -d --remove-orphans`, which recreates services whose
-     image or configuration changed and re-runs the `grafana-users` job
+   - otherwise `git merge --ff-only`, `docker compose pull`, then the new
+     version's `docker-up.sh` (`docker compose up -d --remove-orphans`), which
+     recreates services whose image or configuration changed and re-runs the
+     `grafana-users` job. Put one-time migrations that must run before
+     `docker compose up` into `docker-up.sh`, so they apply to manual and
+     automatic deploys alike.
    - restart `grafana` if `datasources.yml`, `dashboards.yml` or
      `dashboard.json` changed, and `caddy` if `Caddyfile` changed. These are
      single-file bind mounts: after git replaced a file, the container still
@@ -264,7 +267,10 @@ Exit codes: `0` nothing to do / deployed and healthy, `1` deployment refused
    - PostgreSQL major upgrade (with `AUTO_DEPLOY_PG_REINIT=1`): delete the
      `solar_dashboard_postgres-data` volume, start the new version, re-import.
      It refuses if `SOLAR_HEAT_DIR` contains no log files.
-3. **Verify** (max. about 1 minute): Grafana's data source health check passes,
+3. **Verify** (max. about 1 minute): a dashboard query through Grafana
+   (`select count(*) from heizung`, as the viewer user - or admin with
+   `GRAFANA_ADMIN_PASSWORD` if there is no viewer user, which fails once the
+   admin password was changed in the UI) returns data,
    `caddy`, `grafana` and `postgres` are running, and the `grafana-users` job exited
    with 0. Otherwise exit code 2 with the last log lines of each service.
 
