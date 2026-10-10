@@ -21,6 +21,10 @@ Components (pinned in `docker-compose.yml`):
 
 * Grafana 13.2.3 (`grafana/grafana:13.2.3-ubuntu`)
 * PostgreSQL 18.6 (`postgres:18.6`)
+* Caddy 2.11.7 (`caddy:2.11.7`)
+
+See [UPDATING.md](UPDATING.md) for how to update them and how to test an update
+(`test/smoke-test.sh`).
 
 Installation:
 

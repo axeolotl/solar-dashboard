@@ -1,5 +1,3 @@
-x-grafana-image: &grafana-image grafana/grafana:13.2.3-ubuntu
-
 services:
   caddy:
     image: caddy:2.11.7
@@ -20,7 +18,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: *grafana-image
+    image: grafana/grafana:13.2.3-ubuntu
     # no published ports: only reachable through caddy
     networks:
       - frontnet
@@ -50,7 +48,8 @@ services:
 
   # one-shot job: creates/updates the viewer user from config.sh
   grafana-users:
-    image: *grafana-image
+    # same image as grafana (kept as literal tag so that update bots bump both)
+    image: grafana/grafana:13.2.3-ubuntu
     entrypoint: ["bash", "/grafana-users.sh"]
     networks:
       - frontnet

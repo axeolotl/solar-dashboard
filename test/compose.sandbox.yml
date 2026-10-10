@@ -1,0 +1,35 @@
+# Only needed where Docker's embedded DNS does not work, e.g. sandboxes whose
+# kernel lacks iptables/nftables support (dockerd started with
+# "iptables": false). Assigns static IPs and maps the service names via
+# extra_hosts. Used by smoke-test.sh when SANDBOX=1.
+services:
+  caddy:
+    networks:
+      frontnet:
+        ipv4_address: 172.29.0.30
+    extra_hosts:
+      - "grafana:172.29.0.20"
+  grafana:
+    networks:
+      frontnet:
+        ipv4_address: 172.29.0.20
+      grafnet:
+        ipv4_address: 172.28.0.20
+    extra_hosts:
+      - "postgres:172.28.0.10"
+  grafana-users:
+    extra_hosts:
+      - "grafana:172.29.0.20"
+  postgres:
+    networks:
+      grafnet:
+        ipv4_address: 172.28.0.10
+networks:
+  frontnet:
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+  grafnet:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
