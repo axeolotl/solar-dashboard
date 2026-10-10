@@ -202,8 +202,8 @@ important is provisioned). After a PostgreSQL major rollback, re-import with
 Configured in this repo:
 
 - **Dependabot** (`.github/dependabot.yml`) checks the image tags in
-  `docker-compose.yml` every Monday morning: patch/minor updates of all images
-  come as one grouped PR, each major update as its own PR. Once a month it
+  `docker-compose.yml` every Monday morning: patch updates of all images come
+  as one grouped PR, minor updates as another, each major update as its own PR. Once a month it
   also bumps the actions used in the workflow. Dependabot only changes tags. It
   never touches `dashboard.json`, `datasources.yml` or the SQL, so major
   updates may need follow-up commits on the Dependabot branch (steps above).
@@ -216,16 +216,28 @@ Configured in this repo:
   the dashboard screenshot is attached as artifact `dashboard-screenshot`
   (compare with `docs/dashboard.png`).
 
-Typical flow: a green grouped minor/patch PR can be merged (then deploy, see
-step 6). A red PR, or any major update, gets reviewed with this guide: read
-the release notes, fix the files, push to the Dependabot branch and let the
-workflow re-run.
+- **Auto-merge** (`.github/workflows/dependabot-automerge.yml`) enables
+  GitHub auto-merge (squash) for Dependabot PRs that contain only patch
+  updates. **Branch protection** on `master` requires the `smoke-test` check
+  (from GitHub Actions), so such a PR is merged only when the smoke test is
+  green. Repository setting *Allow auto-merge* must stay enabled.
+
+Typical flow:
+
+- **Patch PR**: merged automatically when green. Afterwards deploy on the
+  dashboard host (step 6). Note that merges done by the workflow token do not
+  trigger the push workflow on `master`; the PR's smoke test already covered
+  the exact change.
+- **Green minor PR**: review the release notes, merge, deploy.
+- **Red PR or major update**: follow this guide. Read the release notes, fix the
+  files, push to the Dependabot branch and let the workflow re-run. A red
+  patch PR stays open (auto-merge waits for green).
+
+To change the protection settings: *Settings → Branches → master*, or
+`gh api repos/axeolotl/solar-dashboard/branches/master/protection`.
+Admins can still push to `master` directly (`enforce_admins` is off).
 
 Further options:
-
-- **Auto-merge** green patch PRs with a small workflow using
-  `dependabot/fetch-metadata` and `gh pr merge --auto` (requires branch
-  protection with the smoke test as a required check).
 - **AI agent** (e.g. a scheduled Perplexity Computer task, or one triggered by
   a failing Dependabot PR): give it this file as the procedure, let it run
   `test/check-versions.py`, apply and test the changes (`SANDBOX=1` if needed)
