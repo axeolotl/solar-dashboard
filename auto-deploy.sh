@@ -142,7 +142,9 @@ $(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
     "${COMPOSE[@]}" rm --stop --force postgres >/dev/null 2>&1
     docker volume rm solar_dashboard_postgres-data >/dev/null || refuse "could not delete volume solar_dashboard_postgres-data"
   fi
-  "${COMPOSE[@]}" up -d --remove-orphans 2>&1 | grep -vE ' (Running|Waiting|Healthy)$' | sed 's/^/    /'
+  # docker-up.sh of the new version, so that anything it does before or after
+  # "docker compose up" (e.g. one-time migrations) also applies here
+  "$SCRIPTDIR/docker-up.sh" 2>&1 | grep -vE ' (Running|Waiting|Healthy)$' | sed 's/^/    /'
   for s in $RESTART ; do
     "${COMPOSE[@]}" restart "$s" 2>&1 | sed 's/^/    /'
   done
