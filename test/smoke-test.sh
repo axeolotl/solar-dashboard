@@ -1,10 +1,10 @@
 #!/bin/bash
 # End-to-end smoke test of the complete stack with synthetic data.
 #
-# Runs a copy of the repository with a test config.sh (DASHBOARD_DOMAIN=localhost,
+# Runs a copy of the repository with a test .env and secrets/ (DASHBOARD_DOMAIN=localhost,
 # so Caddy uses its internal CA instead of Let's Encrypt), imports generated
 # SolexMidi log files and checks Postgres, Grafana, the dashboard queries,
-# Caddy/HTTPS and the viewer user. See UPDATING.md.
+# Caddy/HTTPS, the viewer user and the configuration checks. See UPDATING.md.
 #
 # WARNING: uses the same compose project name, container names and volumes as
 # a real installation (solar_dashboard, postgres, solar_dashboard_grafana-storage, ...) and
@@ -39,24 +39,33 @@ fi
 
 # --- prepare a copy of the repo with test configuration ----------------------
 cp -r "$REPO" "$RUN"
-rm -rf "$RUN/.git" "$RUN/config.local.sh"
+rm -rf "$RUN/.git" "$RUN/.env" "$RUN/secrets"
 python3 "$REPO/test/gen-testdata.py" "$DATA" "$DAYS"
-cat > "$RUN/config.sh" <<EOF
+cat > "$RUN/.env" <<EOF
 SOLAR_HEAT_DIR=$DATA
 WLAN_SD_IP=127.0.0.1
 DASHBOARD_DOMAIN=localhost
-GRAFANA_ADMIN_PASSWORD=smoke-admin
 GRAFANA_VIEWER_USER=viewer
-GRAFANA_VIEWER_PASSWORD='smoke "viewer" pw'
-PG_ADMIN_PASSWORD=smoke-pg-admin
-PG_GRAFANA_PASSWORD='smoke reader "pw"'
 EOF
+# the static IPs override, picked up by every docker compose call in $RUN
 if [ "${SANDBOX:-0}" = 1 ] ; then
-  sed -i 's#-f "${SCRIPTDIR}/docker-compose.yml"#-f "${SCRIPTDIR}/docker-compose.yml" -f "${SCRIPTDIR}/test/compose.sandbox.yml"#' "$RUN"/*.sh
+  echo "COMPOSE_FILE=docker-compose.yml:test/compose.sandbox.yml" >> "$RUN/.env"
 fi
-set -a; . "$RUN/config.sh"; set +a
-COMPOSE=(docker compose -p solar_dashboard -f "$RUN/docker-compose.yml")
-[ "${SANDBOX:-0}" = 1 ] && COMPOSE+=(-f "$RUN/test/compose.sandbox.yml")
+# passwords with characters that need care in shell, JSON, SQL and YAML
+GRAFANA_ADMIN_PASSWORD='smoke admin #1'
+GRAFANA_VIEWER_USER=viewer
+GRAFANA_VIEWER_PASSWORD='smoke "viewer" pw\'
+PG_ADMIN_PASSWORD="smoke-pg-admin'"
+PG_GRAFANA_PASSWORD='smoke reader "pw" #'
+secret() { printf '%s' "$2" > "$RUN/secrets/$1"; chmod 644 "$RUN/secrets/$1"; }
+mkdir -m 700 "$RUN/secrets"
+secret grafana_admin_password "$GRAFANA_ADMIN_PASSWORD"
+secret grafana_viewer_password "$GRAFANA_VIEWER_PASSWORD"
+secret pg_admin_password "$PG_ADMIN_PASSWORD"
+secret pg_grafana_password "$PG_GRAFANA_PASSWORD"
+# docker compose, run like a user would: in the repository directory
+compose() { (cd "$RUN" && docker compose "$@"); }
+COMPOSE=(compose)
 ADMIN=(-u "admin:$GRAFANA_ADMIN_PASSWORD")
 VIEWER=(-u "$GRAFANA_VIEWER_USER:$GRAFANA_VIEWER_PASSWORD")
 URL=https://localhost
@@ -85,6 +94,26 @@ img() { grep -E "^\s+image: $1:" "$RUN/docker-compose.yml" | head -1 | sed -E 's
 GRAFANA_TAG=$(img grafana/grafana); POSTGRES_TAG=$(img postgres); CADDY_TAG=$(img caddy)
 echo "testing grafana $GRAFANA_TAG, postgres $POSTGRES_TAG, caddy $CADDY_TAG"
 check "compose file is valid" "${COMPOSE[@]}" config -q
+
+# --- configuration checks (check-config.sh) -----------------------------------
+check "check-config.sh accepts the test configuration" "$RUN/check-config.sh"
+cfg_rejects() {
+  if "$RUN/check-config.sh" >/dev/null 2>&1 ; then fail "check-config.sh rejects $1"; else pass "check-config.sh rejects $1"; fi
+}
+S=$RUN/secrets
+mv "$S/pg_admin_password" "$WORK/"; cfg_rejects "a missing secret"; mv "$WORK/pg_admin_password" "$S/"
+cp -p "$S/pg_admin_password" "$WORK/"; : > "$S/pg_admin_password"; cfg_rejects "an empty secret"; cp -p "$WORK/pg_admin_password" "$S/"
+echo x > "$S/grafana_viewer_password"; cfg_rejects "a secret ending with a newline"; secret grafana_viewer_password "$GRAFANA_VIEWER_PASSWORD"
+chmod 600 "$S/grafana_admin_password"; cfg_rejects "a secret grafana can't read (mode 600)"; chmod 644 "$S/grafana_admin_password"
+printf 'a$b' > "$S/pg_grafana_password"; cfg_rejects "'\$' in pg_grafana_password"; secret pg_grafana_password "$PG_GRAFANA_PASSWORD"
+mv "$RUN/.env" "$WORK/"; cfg_rejects "a missing .env"; mv "$WORK/.env" "$RUN/"
+cp "$RUN/.env" "$WORK/"; sed -i '/^WLAN_SD_IP=/d' "$RUN/.env"; cfg_rejects "a setting missing in .env"; cp "$WORK/.env" "$RUN/"
+check "check-config.sh accepts the restored configuration" "$RUN/check-config.sh"
+mv "$S/pg_admin_password" "$WORK/"
+"$RUN/docker-up.sh" >/dev/null 2>&1 && fail "docker-up.sh refuses to start without a secret" || pass "docker-up.sh refuses to start without a secret"
+mv "$WORK/pg_admin_password" "$S/"
+[ -z "$(docker ps -aq --filter label=com.docker.compose.project=solar_dashboard)" ] \
+  && pass "nothing started with incomplete configuration" || fail "nothing started with incomplete configuration"
 [ "$(grep -cE "^\s+image: grafana/grafana:$GRAFANA_TAG$" "$RUN/docker-compose.yml")" = 2 ] \
   && pass "grafana and grafana-users use the same image" || fail "grafana and grafana-users use the same image"
 
@@ -103,6 +132,22 @@ ROWS=$(docker exec postgres psql -U postgres -Atc "select count(*) from heizung"
 [ "${ROWS:-0}" -gt 0 ] && pass "heizung has $ROWS rows" || fail "heizung has rows"
 DAYROWS=$(docker exec postgres psql -U postgres -Atc "select count(*) from heizung_pro_tag")
 [ "${DAYROWS:-0}" -ge "$DAYS" ] && pass "heizung_pro_tag has $DAYROWS days" || fail "heizung_pro_tag has >= $DAYS days ($DAYROWS)"
+
+# --- secrets -------------------------------------------------------------------
+LEAKS=""
+for c in postgres solar_dashboard-grafana-1 solar_dashboard-grafana-users-1 solar_dashboard-caddy-1 ; do
+  ENV=$(docker inspect "$c" --format '{{range .Config.Env}}{{println .}}{{end}}')
+  for pw in "$GRAFANA_ADMIN_PASSWORD" "$GRAFANA_VIEWER_PASSWORD" "$PG_ADMIN_PASSWORD" "$PG_GRAFANA_PASSWORD" ; do
+    echo "$ENV" | grep -qF -- "$pw" && LEAKS="$LEAKS $c"
+  done
+done
+[ -z "$LEAKS" ] && pass "no passwords in container environments" || fail "no passwords in container environments:$LEAKS"
+# (pg_hba trusts connections via localhost, so test passwords via the container IP)
+PGIP=$(docker inspect postgres --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+docker exec -e PGPASSWORD="$PG_ADMIN_PASSWORD" postgres psql -h "$PGIP" -U postgres -Atc 'select 1' >/dev/null 2>&1 \
+  && pass "postgres admin password from secret" || fail "postgres admin password from secret"
+[ "$(cd "$RUN" && docker compose ps -q | wc -l)" -ge 3 ] \
+  && pass "plain 'docker compose ps' in the repository directory" || fail "plain 'docker compose ps' in the repository directory"
 
 # --- running versions ----------------------------------------------------------
 PGV=$(docker exec postgres psql -U postgres -Atc "show server_version" | cut -d' ' -f1)
@@ -158,7 +203,10 @@ curl -s --max-time 3 http://localhost:3000/ >/dev/null 2>&1 && fail "grafana por
 [ "$("${CURL[@]}" -o /dev/null -w '%{http_code}' "${VIEWER[@]}" -H 'Content-Type: application/json' "$URL/api/dashboards/db" -d '{"dashboard":{"title":"x"}}')" = 403 ] \
   && pass "viewer cannot save dashboards" || fail "viewer cannot save dashboards"
 
-# --- persistence across down/up ------------------------------------------------
+# --- persistence across down/up, changed grafanareader password -------------
+# docker-up.sh syncs the database password, grafana reads the new file on start
+PG_GRAFANA_PASSWORD='changed "reader" pw'
+secret pg_grafana_password "$PG_GRAFANA_PASSWORD"
 "$RUN/docker-down.sh" >/dev/null 2>&1
 check "docker-up.sh after docker-down.sh" "$RUN/docker-up.sh"
 for i in $(seq 30); do docker exec postgres pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done
@@ -167,7 +215,10 @@ for i in $(seq 30); do docker exec postgres pg_isready -U postgres >/dev/null 2>
 docker logs solar_dashboard-grafana-users-1 2>&1 | grep -q "password unchanged" \
   && pass "viewer user unchanged after restart" || fail "viewer user unchanged after restart"
 "${CURL[@]}" "${ADMIN[@]}" "$URL/api/datasources/uid/solar-postgres/health" | grep -q '"status":"OK"' \
-  && pass "data source health after restart" || fail "data source health after restart"
+  && pass "data source health after restart with changed password" || fail "data source health after restart with changed password"
+PGIP=$(docker inspect postgres --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}")
+docker exec -e PGPASSWORD="$PG_GRAFANA_PASSWORD" postgres psql -h "$PGIP" -U grafanareader -d postgres -Atc 'select count(*) > 0 from heizung' 2>/dev/null | grep -qx t \
+  && pass "grafanareader password synced by docker-up.sh" || fail "grafanareader password synced by docker-up.sh"
 
 # --- optional screenshot -------------------------------------------------------
 if python3 -c 'import playwright' 2>/dev/null ; then
