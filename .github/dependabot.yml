@@ -16,7 +16,8 @@ updates:
       # smoke test is green (.github/workflows/dependabot-automerge.yml)
       patch:
         update-types: ["patch"]
-      # minor updates in one PR, merged manually after review
+      # minor updates of all images in one PR - also merged automatically once
+      # the smoke test is green
       minor:
         update-types: ["minor"]
       # major updates get separate PRs, they often need changes to

@@ -346,24 +346,25 @@ Configured in this repo:
   (compare with `docs/dashboard.png`).
 
 - **Auto-merge** (`.github/workflows/dependabot-automerge.yml`) enables
-  GitHub auto-merge (squash) for Dependabot PRs that contain only patch
-  updates. **Branch protection** on `master` requires the `smoke-test` check
+  GitHub auto-merge (squash) for Dependabot PRs that contain only patch or
+  minor updates (major updates always need review). **Branch protection** on `master` requires the `smoke-test` check
   (from GitHub Actions), so such a PR is merged only when the smoke test is
   green. Repository setting *Allow auto-merge* must stay enabled.
 
 Typical flow:
 
-- **Patch PR**: merged automatically when green. Afterwards deploy on the
-  dashboard host (step 6). With [auto-deploy](#automatic-deployment) enabled,
-  patch updates go from Dependabot to the running dashboard without
-  interaction. Note that merges done by the workflow token do not
+- **Patch or minor PR**: merged automatically when green. Afterwards deploy
+  on the dashboard host (step 6). With [auto-deploy](#automatic-deployment)
+  enabled, patch and minor updates go from Dependabot to the running dashboard
+  without interaction. Nobody reads the release notes first: the smoke test
+  catches a dashboard that doesn't load, legacy panel types and panels without
+  data, but not purely visual changes - glance at the dashboard after a
+  Grafana minor update. Note that merges done by the workflow token do not
   trigger the push workflow on `master`; the PR's smoke test already covered
   the exact change.
-- **Green minor PR**: review the release notes, merge, deploy (automatic
-  with auto-deploy).
 - **Red PR or major update**: follow this guide. Read the release notes, fix the
   files, push to the Dependabot branch and let the workflow re-run. A red
-  patch PR stays open (auto-merge waits for green).
+  patch or minor PR stays open (auto-merge waits for green).
 
 To change the protection settings: *Settings → Branches → master*, or
 `gh api repos/axeolotl/solar-dashboard/branches/master/protection`.
