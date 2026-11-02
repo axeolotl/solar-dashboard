@@ -1,6 +1,6 @@
-# Enables auto-merge for Dependabot PRs that only contain patch updates.
-# GitHub merges them once all required status checks (branch protection on
-# master: "smoke-test") are green; minor and major updates stay for review.
+# Enables auto-merge for Dependabot PRs that only contain patch or minor
+# updates. GitHub merges them once all required status checks (branch
+# protection on master: "smoke-test") are green; major updates stay for review.
 #
 # Uses pull_request_target (as in the dependabot/fetch-metadata example) to get
 # a token with write access; no code from the PR is checked out or executed.
@@ -23,9 +23,11 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable auto-merge for patch updates
+      - name: Enable auto-merge for patch and minor updates
         # update-type is the highest semver change in the (grouped) PR
-        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        if: >-
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.metadata.outputs.update-type == 'version-update:semver-minor'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
