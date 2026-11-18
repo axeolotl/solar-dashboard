@@ -57,7 +57,7 @@ main() {
     refuse "checkout is on branch '$(git rev-parse --abbrev-ref HEAD)', not '$BRANCH'"
   fi
   if ! git diff --quiet HEAD -- ; then
-    refuse "tracked files have local changes (move local settings to config.local.sh):
+    refuse "tracked files have local changes (local settings belong into .env and secrets/):
 $(git status --short --untracked-files=no)"
   fi
   if ! git merge-base --is-ancestor "$OLD" "$NEW" ; then
@@ -76,16 +76,12 @@ $(git status --short --untracked-files=no)"
 $MANUAL"
   fi
 
-  # new settings in config.sh must be set explicitly in config.local.sh
-  vars() { sed -nE 's/^([A-Z_][A-Z0-9_]*)=.*/\1/p' | sort -u; }
-  NEWVARS=$(comm -13 <(git show "$OLD:config.sh" | vars) <(git show "$NEW:config.sh" | vars))
-  MISSING=""
-  for v in $NEWVARS ; do
-    grep -qE "^$v=" config.local.sh 2>/dev/null || MISSING="$MISSING $v"
-  done
-  if [ -n "$MISSING" ] ; then
-    refuse "new setting(s) in config.sh:$MISSING - set them in config.local.sh (the defaults are placeholders):
-$(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
+  # new settings (.env.example) or secrets (docker-compose.yml) of the new
+  # version must be set up by hand first - checked with check-config.sh of
+  # the new version against the new files
+  if ! CONFIG_OUT=$(CONFIG_DIR="$SCRIPTDIR" bash <(git show "$NEW:check-config.sh" 2>/dev/null) "$NEW" 2>&1) ; then
+    refuse "configuration incomplete for the new version (see .env.example and README.md):
+$(echo "$CONFIG_OUT" | sed 's/^/    /')"
   fi
 
   # --- plan --------------------------------------------------------------------
@@ -103,7 +99,7 @@ $(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
       refuse "PostgreSQL major upgrade $PG_OLD -> $PG_NEW: the database must be recreated from the log files.
     Run once by hand: AUTO_DEPLOY_PG_REINIT=1 $SCRIPTDIR/auto-deploy.sh"
     fi
-    set -a; . "$SCRIPTDIR/config.sh"; set +a
+    set -a; . "$SCRIPTDIR/.env"; set +a
     if [ -z "$(find "${SOLAR_HEAT_DIR:-/nonexistent}" -name '*.TXT' 2>/dev/null | head -1)" ] ; then
       refuse "PostgreSQL major upgrade: no log files (*.TXT) in SOLAR_HEAT_DIR=${SOLAR_HEAT_DIR:-}, refusing to delete the database"
     fi
@@ -131,8 +127,9 @@ $(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
 
   # --- activate ---------------------------------------------------------------
   git merge --quiet --ff-only "$NEW" || refuse "git merge --ff-only failed"
-  set -a; . "$SCRIPTDIR/config.sh"; set +a
-  COMPOSE=(docker compose -p solar_dashboard -f "$SCRIPTDIR/docker-compose.yml")
+  set -a; . "$SCRIPTDIR/.env"; set +a
+  # run in $SCRIPTDIR: compose reads .env (incl. COMPOSE_FILE) from there
+  COMPOSE=(docker compose)
   if ! PULL_OUT=$("${COMPOSE[@]}" pull --quiet 2>&1) ; then
     log "WARNING: docker compose pull failed, continuing with local images:"
     echo "$PULL_OUT" | tail -5 | sed 's/^/    /'
@@ -165,9 +162,9 @@ $(git show "$NEW:config.sh" | grep -B3 -E "^($(echo $MISSING | tr ' ' '|'))=")"
   # Uses the viewer user (its password is re-applied on every start), as the
   # admin password may have been changed in the UI.
   if [ -n "${GRAFANA_VIEWER_USER:-}" ] ; then
-    GF_AUTH="$GRAFANA_VIEWER_USER:$GRAFANA_VIEWER_PASSWORD"
+    GF_AUTH="$GRAFANA_VIEWER_USER:$(cat secrets/grafana_viewer_password)"
   else
-    GF_AUTH="admin:$GRAFANA_ADMIN_PASSWORD"
+    GF_AUTH="admin:$(cat secrets/grafana_admin_password)"
   fi
   ds_healthy() {
     "${COMPOSE[@]}" exec -T grafana curl -fsS --max-time 10 -u "$GF_AUTH" \

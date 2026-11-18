@@ -1,3 +1,4 @@
 test/screenshot.png
-config.local.sh
+.env
+secrets/
 *.log

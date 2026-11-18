@@ -56,7 +56,7 @@ never `latest`, so that an update is a reviewable, testable commit.
    ./init-db.sh      # only needed after a PostgreSQL major upgrade (see below)
    ```
 
-   Check the dashboard in the browser and `docker compose -p solar_dashboard logs grafana`.
+   Check the dashboard in the browser and `docker compose logs grafana`.
 
 ## Component notes
 
@@ -70,7 +70,7 @@ never `latest`, so that an update is a reviewable, testable commit.
   start. Everything else (data source, dashboard, viewer user) is provisioned
   from the repo, so a broken Grafana state can always be reset with
   `./docker-down.sh && docker volume rm solar_dashboard_grafana-storage &&
-  ./docker-up.sh` (admin password is then reset to `GRAFANA_ADMIN_PASSWORD`).
+  ./docker-up.sh` (admin password is then reset to `secrets/grafana_admin_password`).
 - **Panels**: Grafana 12 removed Angular, so all old panel types (`graph`,
   `singlestat`, `table-old`, ...) are gone. Grafana only migrates them on the fly in
   the browser, never in the provisioned file. `dashboard.json` must only use
@@ -94,10 +94,15 @@ never `latest`, so that an update is a reviewable, testable commit.
   currently `1500` = "15+"); check the plugin's options when PostgreSQL moves on
   (`grep -o 'label:"15+",value:[0-9]*' -r /usr/share/grafana/data/plugins-bundled/grafana-postgresql-datasource/`
   inside the image).
-- **`$` in provisioned values**: Grafana expands `$VAR` / `$__env{VAR}` in
-  provisioning files and *again* inside the substituted value, so passwords
-  must not contain `$` (`init-db.sh` enforces this for `PG_GRAFANA_PASSWORD`).
-- `GF_SECURITY_ADMIN_PASSWORD` only applies on the very first start of an empty
+- **Secrets**: the data source password comes from
+  `$__file{/run/secrets/pg_grafana_password}` (`datasources.yml`), the admin
+  password from `GF_SECURITY_ADMIN_PASSWORD__FILE`. Grafana expands `$VAR` /
+  `$__env{VAR}` *inside* the substituted value again, so these passwords must
+  not contain `$` (`check-config.sh` enforces this). Grafana runs as uid 472:
+  if it can't read the secret file, it silently creates `admin` with the
+  default password `admin` on a new volume - `check-config.sh` therefore
+  requires mode 644 for the files.
+- `GF_SECURITY_ADMIN_PASSWORD__FILE` only applies on the very first start of an empty
   `solar_dashboard_grafana-storage` volume.
 - The `-ubuntu` image variant contains `curl` and `bash`, which the
   healthcheck and `grafana-users.sh` rely on. Check this if switching variants.
@@ -130,6 +135,11 @@ never `latest`, so that an update is a reviewable, testable commit.
 - Default auth is `scram-sha-256` (since 14); the Grafana data source supports it.
 - `init-db.sh`/`update-db.sh` run `psql` via `docker compose exec` in the
   postgres container, so client and server version always match.
+- The superuser password comes from `POSTGRES_PASSWORD_FILE` (only used when
+  the data volume is initialized). `init-db.sql` and `docker-up.sh` read the
+  `grafanareader` password with psql's `` \set var `cat /run/secrets/...` ``
+  inside the container. The image's `pg_hba.conf` trusts local connections, so
+  test passwords via the container IP (`psql -h <ip>`), as the smoke test does.
 
 ### Caddy
 
@@ -140,12 +150,19 @@ never `latest`, so that an update is a reviewable, testable commit.
   production host (Let's Encrypt rate limits).
 - The smoke test runs with `DASHBOARD_DOMAIN=localhost`, so Caddy uses its
   internal CA; the real ACME flow can only be verified on the production host
-  (`docker compose -p solar_dashboard logs caddy`).
+  (`docker compose logs caddy`).
 
 ### Docker / Compose
 
 - Only Compose v2 (`docker compose`) is supported; there is no top-level
-  `version:` key.
+  `version:` key. The project name comes from the top-level `name:`
+  (`solar_dashboard`); settings come from `.env` in the project directory, so
+  the scripts `cd` there and run plain `docker compose`. `COMPOSE_FILE` in
+  `.env` can add override files (the smoke test uses it for
+  `test/compose.sandbox.yml`).
+- Compose secrets (`secrets:` with `file:`) are bind mounts of the host files;
+  compose does not notice changed file contents, so changed passwords need
+  `./docker-down.sh && ./docker-up.sh`.
 - The healthcheck uses `start_interval` (Docker Engine ≥ 25).
 
 ## Testing
@@ -206,14 +223,13 @@ mail or the log only contain deployments and problems.
 
 ### Activation
 
-1. Move local settings out of `config.sh` (a tracked file must not have local
-   changes, otherwise `git pull` conflicts and auto-deploy refuses to run):
+1. Local settings belong into `.env` and `secrets/` (untracked, see
+   README.md). Tracked files must not have local changes, otherwise `git pull`
+   conflicts and auto-deploy refuses to run:
 
    ```bash
    cd ~/solar-dashboard
-   grep -E '^[A-Z_]+=' config.sh > config.local.sh   # current values
-   git checkout config.sh                            # back to the defaults
-   git status --short                                # must show no 'M' lines
+   git status --short    # must show no 'M' lines
    ```
 
 2. Make sure the checkout is on `master` and tracks GitHub
@@ -246,9 +262,10 @@ Exit codes: `0` nothing to do / deployed and healthy, `1` deployment refused
    - checkout not on `master`, local changes to tracked files, or local
      commits that prevent a fast-forward
    - a new commit has a `Deploy: manual` trailer
-   - `config.sh` gained a setting that is not set in `config.local.sh`
-     (defaults are placeholders, e.g. passwords). Add it there and the next
-     run deploys.
+   - the configuration does not fit the new version: `check-config.sh` of
+     the new version, checked against its `.env.example` and
+     `docker-compose.yml`, reports e.g. a new setting missing in `.env` or a
+     new secret file missing in `secrets/`. Add it and the next run deploys.
    - PostgreSQL major version changes, unless `AUTO_DEPLOY_PG_REINIT=1`
 2. **Activate**:
    - only docs, tests or CI changed (`*.md`, `docs/`, `test/`, `.github/`):
@@ -269,7 +286,7 @@ Exit codes: `0` nothing to do / deployed and healthy, `1` deployment refused
      It refuses if `SOLAR_HEAT_DIR` contains no log files.
 3. **Verify** (max. about 1 minute): a dashboard query through Grafana
    (`select count(*) from heizung`, as the viewer user - or admin with
-   `GRAFANA_ADMIN_PASSWORD` if there is no viewer user, which fails once the
+   `secrets/grafana_admin_password` if there is no viewer user, which fails once the
    admin password was changed in the UI) returns data,
    `caddy`, `grafana` and `postgres` are running, and the `grafana-users` job exited
    with 0. Otherwise exit code 2 with the last log lines of each service.
@@ -292,19 +309,19 @@ hours if stale) prevents overlapping runs.
 | `init-db.sql` (schema, views) | yes | full re-import from the log files (a few seconds of empty dashboard) |
 | `update-db.sql`, `update-db.sh`, `update-files.sh` | yes | used by the next cron run |
 | `auto-deploy.sh` itself | yes | next run uses the new version |
-| New setting in `config.sh` | **after you set it** in `config.local.sh` | refused until then |
+| New setting in `.env.example`, new secret in `docker-compose.yml` | **after you set it** in `.env` / `secrets/` | refused until then |
 | PostgreSQL major update | **on request**: `AUTO_DEPLOY_PG_REINIT=1 ./auto-deploy.sh` | volume deleted, re-import |
 | `crontab` | **no** | a note is printed; install it with `crontab crontab` after review |
-| Renaming volumes or moving persistent data | only with a migration | add an idempotent one-time migration to `docker-up.sh` (like the `grafana-storage` one), otherwise mark the commit `Deploy: manual` |
+| Renaming volumes or moving persistent data | only with a migration | add an idempotent one-time migration to `docker-up.sh`, otherwise mark the commit `Deploy: manual` |
 | Host requirements (Docker version, ports, DNS, firewall) | **no** | mark the commit `Deploy: manual` |
 | Changes needing data migration that can't be rebuilt from the log files (e.g. Grafana users/settings, data not in the log files) | **no** | mark the commit `Deploy: manual` and describe the steps |
-| Changes in `config.local.sh` (your settings) | not via git | run `./docker-up.sh` (and `./init-db.sh` for `PG_GRAFANA_PASSWORD`) yourself |
+| Changes in `.env` or `secrets/` (your settings) | not via git | run `./docker-down.sh && ./docker-up.sh` yourself |
 
 ### When it fails
 
 - **Exit 1 (refused)**: nothing was changed, the dashboard keeps running the
   previous version. Fix the reason given (e.g. add a setting to
-  `config.local.sh`). For a `Deploy: manual` commit, follow the instructions in
+  `.env`). For a `Deploy: manual` commit, follow the instructions in
   its message and deploy by hand (`git merge --ff-only origin/master`, then the
   steps from the message). The next run continues from there.
 - **Exit 2 (unhealthy)**: the new version is checked out and running, but a

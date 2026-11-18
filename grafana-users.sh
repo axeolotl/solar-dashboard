@@ -1,6 +1,6 @@
 #!/bin/bash
-# Creates or updates the Grafana viewer user configured in config.sh
-# (GRAFANA_VIEWER_USER / GRAFANA_VIEWER_PASSWORD) via the Grafana HTTP API.
+# Creates or updates the Grafana viewer user GRAFANA_VIEWER_USER (from .env)
+# with the password from secrets/grafana_viewer_password via the Grafana HTTP API.
 # Runs as one-shot service "grafana-users" on every "docker compose up",
 # once Grafana is healthy. Idempotent: the password is only reset if it changed,
 # so existing viewer sessions (e.g. kiosk mode) are not interrupted.
@@ -9,14 +9,16 @@ set -eu
 GRAFANA_URL=${GRAFANA_URL:-http://grafana:3000}
 GRAFANA_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
 GRAFANA_VIEWER_USER=${GRAFANA_VIEWER_USER:-}
-GRAFANA_VIEWER_PASSWORD=${GRAFANA_VIEWER_PASSWORD:-}
+SECRETS=${SECRETS:-/run/secrets}
 
 if [ -z "$GRAFANA_VIEWER_USER" ] ; then
   echo "GRAFANA_VIEWER_USER not set, no viewer user configured"
   exit 0
 fi
+GRAFANA_ADMIN_PASSWORD=$(cat "$SECRETS/grafana_admin_password")
+GRAFANA_VIEWER_PASSWORD=$(cat "$SECRETS/grafana_viewer_password")
 if [ -z "$GRAFANA_VIEWER_PASSWORD" ] ; then
-  echo "GRAFANA_VIEWER_PASSWORD must be set for GRAFANA_VIEWER_USER=$GRAFANA_VIEWER_USER" >&2
+  echo "secrets/grafana_viewer_password must not be empty for GRAFANA_VIEWER_USER=$GRAFANA_VIEWER_USER" >&2
   exit 1
 fi
 if [ "$GRAFANA_VIEWER_USER" = "$GRAFANA_ADMIN_USER" ] ; then
@@ -60,7 +62,7 @@ case "$status" in
     echo "viewer user '$GRAFANA_VIEWER_USER' created"
     ;;
   401)
-    fail "admin login failed - GRAFANA_ADMIN_PASSWORD only applies on Grafana's first start; update it in config.local.sh if you changed it in the UI" "$status"
+    fail "admin login failed - secrets/grafana_admin_password only applies on Grafana's first start; update the file if you changed the password in the UI" "$status"
     ;;
   *)
     fail "user lookup failed" "$status"
