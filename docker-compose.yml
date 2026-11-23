@@ -1,6 +1,6 @@
 services:
   caddy:
-    image: caddy:2.11.8
+    image: caddy:2.11.9
     networks:
       - frontnet
     ports:
