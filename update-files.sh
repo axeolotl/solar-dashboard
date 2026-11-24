@@ -1,8 +1,8 @@
 #!/bin/sh
 N=1
-SCRIPTDIR=`dirname $0`
-. "$SCRIPTDIR/config.sh"
-if [ -z "${WLAN_SD_IP}"] ; then exit 0 ; fi
+cd "$(dirname "$0")" || exit 1
+. ./.env
+if [ -z "${WLAN_SD_IP}" ] ; then exit 0 ; fi
 if [ -n "$1" ] ; then
   N=$1
 fi
